@@ -1,0 +1,30 @@
+name: Fehler in einem Lerninhalt
+description: Falsche Antwort, falsche Erklärung, veraltete Regel oder Tippfehler in Lektion, Frage oder Karteikarte
+title: "Inhalt: "
+labels: ["inhalt"]
+body:
+  - type: input
+    id: thema
+    attributes:
+      label: Thema
+      description: Titel oder Adresse des Themas, z. B. /thema/ap1-ipv4-subnetting
+    validations:
+      required: true
+  - type: textarea
+    id: stelle
+    attributes:
+      label: Betroffene Stelle
+      description: Frage, Karteikarte oder Absatz – am besten wörtlich zitieren
+    validations:
+      required: true
+  - type: textarea
+    id: korrektur
+    attributes:
+      label: Was ist falsch und wie wäre es richtig?
+    validations:
+      required: true
+  - type: textarea
+    id: beleg
+    attributes:
+      label: Beleg
+      description: Quelle (Gesetz, Norm, IHK, Lehrbuch, Dokumentation) – hilft beim schnellen Prüfen
