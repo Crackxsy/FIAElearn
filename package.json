@@ -14,7 +14,7 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
-    "db:postgres": "node scripts/use-postgres.mjs && PRISMA_SCHEMA=prisma/schema.postgres.prisma prisma generate && PRISMA_SCHEMA=prisma/schema.postgres.prisma prisma db push && PRISMA_SCHEMA=prisma/schema.postgres.prisma prisma db seed",
+    "db:postgres": "node scripts/use-postgres.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
