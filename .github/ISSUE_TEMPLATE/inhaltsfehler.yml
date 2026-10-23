@@ -1,7 +1,7 @@
 name: Fehler in einem Lerninhalt
 description: Falsche Antwort, falsche Erklärung, veraltete Regel oder Tippfehler in Lektion, Frage oder Karteikarte
 title: "Inhalt: "
-labels: ["inhalt"]
+labels: ["bug"]
 body:
   - type: input
     id: thema

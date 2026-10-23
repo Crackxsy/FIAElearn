@@ -1,7 +1,7 @@
 name: Thema oder Funktion vorschlagen
 description: Ein prüfungsrelevantes Thema fehlt oder eine Funktion würde beim Lernen helfen
 title: "Vorschlag: "
-labels: ["vorschlag"]
+labels: ["enhancement"]
 body:
   - type: textarea
     id: vorschlag
