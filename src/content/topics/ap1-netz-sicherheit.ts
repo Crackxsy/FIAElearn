@@ -269,6 +269,141 @@ Virtuelle LANs trennen z. B. Verwaltung, Produktion, Gäste auf einem Switch. Ta
     ],
   },
   {
+    id: "ap1-virtualisierung",
+    part: "AP1",
+    lf: "LF02",
+    title: "Virtualisierung",
+    summary: "Hypervisor Typ 1/2, VM vs. Container, Snapshot ≠ Backup, Ressourcenplanung, Überprovisionierung, VDI, Bezug zu IaaS.",
+    weight: 3,
+    hours: 2.5,
+    difficulty: 2,
+    lesson: {
+      sources: ["O02", "L10"],
+      keyPoints: [
+        "Ein Host stellt mehreren isolierten VMs virtuelle Hardware bereit; der Hypervisor verteilt die Ressourcen.",
+        "Typ 1 (bare metal) läuft direkt auf der Hardware (ESXi, Hyper-V); Typ 2 (hosted) als Anwendung auf einem Host-Betriebssystem (VirtualBox, VMware Workstation).",
+        "VMs haben ein eigenes Gast-OS mit eigenem Kernel; Container teilen sich den Kernel des Hosts – leichter, aber schwächer isoliert.",
+        "Snapshot ≠ Backup: Er liegt auf demselben Speicher und ist von der Basis-Festplatte abhängig.",
+        "RAM-Bedarf = Summe aller VMs + Hypervisor-Overhead + Reserve. Überprovisionierung nur mit Monitoring.",
+        "VDI: Arbeitsplatz-Desktops laufen als VMs im Rechenzentrum, Zugriff per Remote-Protokoll.",
+      ],
+      content: `## Begriff
+Bei der **Virtualisierung** wird physische Hardware (CPU, Arbeitsspeicher, Massenspeicher, Netzwerk) durch eine Software-Schicht abstrahiert. Auf einem physischen **Host** laufen dadurch mehrere voneinander isolierte **virtuelle Maschinen (VMs)**, die **Gäste**. Jede VM hat ein eigenes Betriebssystem und virtuelle Hardware: vCPUs, virtuellen Arbeitsspeicher, virtuelle Festplatten und virtuelle Netzwerkkarten.
+
+Die Software, die die Ressourcen verteilt und die VMs voneinander trennt, heißt **Hypervisor** (auch Virtual Machine Monitor).
+
+Voraussetzung auf dem Host: eine CPU mit Virtualisierungserweiterung (**Intel VT-x** bzw. **AMD-V**), die im BIOS/UEFI aktiviert sein muss.
+
+## Vorteile und Nachteile
+| Vorteile | Nachteile |
+|---|---|
+| Konsolidierung: weniger physische Server, bessere Auslastung, weniger Strom, Platz und Kühlung | Der Host wird zum **Single Point of Failure** – fällt er aus, stehen alle VMs (ohne Cluster) |
+| Schnelle Bereitstellung über Vorlagen (Templates) und Klone | Leistungs-Overhead durch den Hypervisor |
+| Isolation: Der Absturz einer VM betrifft die anderen nicht | VMs konkurrieren um dieselben Ressourcen |
+| Hardwareunabhängigkeit: VMs lassen sich auf einen anderen Host verschieben (Live-Migration) | Höhere Anforderungen an Know-how, Verwaltung und Lizenzierung |
+| Test- und Schulungsumgebungen, Snapshots vor Änderungen | Der Hypervisor ist ein zusätzliches Angriffsziel |
+
+## Hypervisor-Typen
+| | Typ 1 (bare metal, nativ) | Typ 2 (hosted) |
+|---|---|---|
+| läuft | direkt auf der Hardware | als Anwendung auf einem Host-Betriebssystem |
+| Overhead | gering | höher (Host-OS liegt dazwischen) |
+| Einsatz | Server, Rechenzentrum, Cloud | Arbeitsplatz, Test, Schulung, Entwicklung |
+| Beispiele | VMware ESXi, Microsoft Hyper-V, Xen, KVM (z. B. in Proxmox VE) | Oracle VirtualBox, VMware Workstation |
+
+Hyper-V zählt zu Typ 1: Auch wenn es unter Windows aktiviert wird, läuft der Hypervisor direkt auf der Hardware, und Windows selbst läuft in einer privilegierten Partition darüber.
+
+## VM vs. Container
+| | Virtuelle Maschine | Container |
+|---|---|---|
+| virtualisiert | komplette Hardware | Betriebssystem-Ebene (isolierte Prozesse) |
+| Betriebssystem | eigenes Gast-OS mit eigenem Kernel | teilt sich den Kernel des Hosts |
+| Größe | meist mehrere GB | oft nur MB bis wenige hundert MB |
+| Start | bootet wie ein PC | meist in Sekunden |
+| Isolation | stark | schwächer (gemeinsamer Kernel) |
+| Beispiele | VMs unter ESXi oder Hyper-V | Docker, Podman; Orchestrierung mit Kubernetes |
+
+Container eignen sich für Anwendungen und Microservices, die schnell skaliert werden und auf Entwickler-PC, Testsystem und Produktion identisch laufen sollen. VMs und Container schließen sich nicht aus: In der Praxis laufen Container häufig innerhalb von VMs.
+
+## Snapshot ≠ Backup
+Ein **Snapshot** hält den Zustand einer VM (Festplatte, optional auch Arbeitsspeicher) zu einem Zeitpunkt fest. Danach werden Änderungen in eine Differenzdatei geschrieben, und man kann schnell zum alten Stand zurückkehren – ideal **vor Updates oder Konfigurationsänderungen**.
+
+Ein Snapshot ist **kein Backup**:
+- Er liegt auf **demselben Speicher** wie die VM – fällt das Speichersystem aus, sind VM und Snapshot verloren.
+- Er ist von der **Basis-Festplatte abhängig** und allein nicht nutzbar.
+- Lange aufbewahrte Snapshots wachsen, kosten Speicherplatz und Leistung.
+
+Daher: Snapshots nur kurzfristig nutzen und danach löschen (zusammenführen). Für die Datensicherung braucht es echte Backups nach der 3-2-1-Regel (siehe Thema „Datensicherung & RAID“).
+
+## Ressourcenplanung
+Der Host muss den Bedarf aller VMs **plus Hypervisor-Overhead plus Reserve** abdecken.
+
+Beispiel Arbeitsspeicher (Muster GmbH):
+1. VMs: Domänencontroller 8 GB + Dateiserver 8 GB + Datenbankserver 16 GB = **32 GB**
+2. Hypervisor-Overhead (laut Aufgabenstellung bzw. Herstellerangabe): + 4 GB = **36 GB**
+3. Reserve für Wachstum und Lastspitzen, hier 20 %: 36 GB × 1,2 = **43,2 GB**
+4. Bestückung: nächste sinnvolle Modulbestückung, z. B. **64 GB**
+
+Bei der CPU zählt man **vCPUs** (virtuelle Prozessorkerne). Das Verhältnis von vCPUs zu physischen Kernen ist der **Überbuchungsfaktor**: 32 vCPUs auf 16 Kernen = **2:1**.
+
+Beim Massenspeicher: Summe der virtuellen Festplatten + Platz für Snapshots, Vorlagen und Wachstum; für Ausfallsicherheit ein passendes RAID.
+
+## Überprovisionierung (Overcommitment)
+Den VMs wird insgesamt **mehr zugewiesen, als physisch vorhanden** ist – z. B. mehr vCPUs als Kerne oder mehr Festplattenplatz (Thin Provisioning), als das Speichersystem hat. Das funktioniert, weil selten alle VMs gleichzeitig alles ausnutzen.
+- Vorteil: bessere Auslastung, geringere Hardwarekosten.
+- Risiko: Bei Lastspitzen bremsen sich die VMs gegenseitig aus; beim Arbeitsspeicher droht Auslagerung, bei Thin Provisioning ein volllaufender Datenspeicher, der betroffene VMs anhalten kann.
+- Daher: Auslastung überwachen (Monitoring), Schwellwerte und Alarme setzen; kritischen VMs feste Ressourcen reservieren.
+
+## Desktop-Virtualisierung (VDI)
+Bei der **Virtual Desktop Infrastructure** laufen die Arbeitsplatz-Betriebssysteme als VMs im Rechenzentrum. Die Nutzer greifen über ein Remote-Protokoll (z. B. RDP) mit Thin Client, Notebook oder Browser darauf zu.
+- Vorteile: zentrale Verwaltung und Updates, Daten verlassen das Rechenzentrum nicht, neue Arbeitsplätze schnell bereitgestellt, Zugriff von überall (Homeoffice), einfache Endgeräte genügen.
+- Nachteile: ohne stabile Netzwerkverbindung kein Arbeiten, leistungsstarke Server und passende Lizenzen nötig, grafikintensive Anwendungen sind anspruchsvoll.
+- Abgrenzung: Beim **Terminalserver** (z. B. Remote Desktop Services) teilen sich viele Nutzer **ein** Server-Betriebssystem; bei VDI erhält jeder Nutzer eine **eigene VM**.
+
+## Bezug zur Cloud
+Cloud-Rechenzentren beruhen auf Virtualisierung. Bei **IaaS** mietet der Kunde virtuelle Maschinen, Speicher und Netze: Hardware und Hypervisor betreibt der Anbieter, das Gastbetriebssystem und alles darüber verwaltet der Kunde selbst. Die Servicemodelle im Überblick stehen im Thema „Betriebssysteme, Software & Lizenzen“.`,
+    },
+    questions: [
+      q.single("Welcher Hypervisor-Typ läuft direkt auf der Hardware des Servers, ohne darunterliegendes Betriebssystem?", ["Typ 1 (bare metal)", "Typ 2 (hosted)", "Container-Engine", "Emulator"], 0, "Typ 1 (bare metal, nativ) läuft direkt auf der Hardware, z. B. VMware ESXi oder Hyper-V. Typ 2 läuft als Anwendung auf einem Host-Betriebssystem.", { placement: true, difficulty: 1 }),
+      q.multi("Welche Produkte sind Typ-2-Hypervisoren (hosted)?", ["VMware ESXi", "Oracle VirtualBox", "VMware Workstation", "Xen"], [1, 2], "VirtualBox und VMware Workstation werden als Anwendung auf einem vorhandenen Betriebssystem installiert. ESXi und Xen laufen direkt auf der Hardware (Typ 1)."),
+      q.single("Was unterscheidet einen Container grundlegend von einer virtuellen Maschine?", ["Container haben ein eigenes Gast-Betriebssystem mit eigenem Kernel.", "Container teilen sich den Kernel des Host-Betriebssystems.", "Container benötigen immer einen Typ-1-Hypervisor.", "Container lassen sich nur unter Windows betreiben."], 1, "Container virtualisieren auf Betriebssystem-Ebene und nutzen den Kernel des Hosts mit. Dadurch sind sie klein und starten schnell, sind aber schwächer isoliert als VMs.", { placement: true }),
+      q.single("Vor einem größeren Update erstellt ein Administrator der Muster GmbH einen Snapshot der Datenbank-VM und erklärt, damit sei die Datensicherung erledigt. Was ist richtig?", ["Stimmt, ein Snapshot ist eine vollwertige Sicherung.", "Falsch – der Snapshot liegt auf demselben Speicher und hängt von der Basis-Festplatte ab; er ersetzt kein Backup.", "Stimmt, sofern der Snapshot länger als 30 Tage aufbewahrt wird.", "Falsch – von Datenbank-VMs lassen sich grundsätzlich keine Snapshots erstellen."], 1, "Ein Snapshot eignet sich, um nach einem misslungenen Update schnell zurückzuspringen. Fällt aber das Speichersystem aus, sind VM und Snapshot gemeinsam verloren. Eine Datensicherung muss unabhängig davon auf einem anderen Medium liegen."),
+      q.calc(
+        "Die Muster GmbH plant einen Virtualisierungshost für vier VMs: Domänencontroller 4 GB RAM, Dateiserver 8 GB, Datenbankserver 16 GB, Webserver 6 GB. Der Hypervisor benötigt selbst 4 GB. Auf den Gesamtbedarf (VMs + Hypervisor) sollen 25 % Reserve aufgeschlagen werden. Wie hoch ist der rechnerische Arbeitsspeicherbedarf in GB (ohne Aufrunden auf Modulgrößen)?",
+        47.5,
+        "VMs: 4 + 8 + 16 + 6 = 34 GB. Mit Hypervisor: 34 + 4 = 38 GB. Mit 25 % Reserve: 38 × 1,25 = 47,5 GB.",
+        { unit: "GB", tolerance: 0.05, steps: ["Summe der VMs: 4 + 8 + 16 + 6 = 34 GB", "Hypervisor-Overhead: 34 + 4 = 38 GB", "Reserve 25 %: 38 × 1,25 = 47,5 GB"] },
+      ),
+      q.calc(
+        "Ein Host hat 2 CPUs mit je 8 physischen Kernen (Hyper-Threading bleibt unberücksichtigt). Darauf laufen 4 VMs mit je 4 vCPUs, 6 VMs mit je 2 vCPUs und 2 VMs mit je 6 vCPUs. Wie hoch ist der Überbuchungsfaktor (vCPUs je physischem Kern)? Gib x für das Verhältnis x:1 an (nur die Zahl x, z. B. 1,5).",
+        2.5,
+        "vCPUs: 4 × 4 + 6 × 2 + 2 × 6 = 16 + 12 + 12 = 40. Physische Kerne: 2 × 8 = 16. 40 ÷ 16 = 2,5 → 2,5:1.",
+        { tolerance: 0.02, steps: ["vCPUs: 4 × 4 + 6 × 2 + 2 × 6 = 40", "Physische Kerne: 2 × 8 = 16", "40 ÷ 16 = 2,5 → 2,5:1"] },
+      ),
+      q.single("Auf einem neuen Notebook lässt sich in VirtualBox keine 64-Bit-VM starten. Was ist die wahrscheinlichste Ursache?", ["Die Virtualisierungserweiterung (Intel VT-x bzw. AMD-V) ist im UEFI deaktiviert.", "Das Notebook hat keine dedizierte Grafikkarte.", "Es ist keine USV angeschlossen.", "Im Notebook ist eine SSD statt einer HDD verbaut."], 0, "64-Bit-Gäste benötigen die Hardware-Virtualisierung der CPU. Sie ist bei manchen Geräten ab Werk im BIOS/UEFI deaktiviert und muss dort eingeschaltet werden."),
+      q.short("Wie nennt man es, wenn den VMs insgesamt mehr Ressourcen (z. B. vCPUs oder Speicherplatz) zugewiesen werden, als der Host physisch besitzt? (ein Fachbegriff)", ["Überprovisionierung", "Overcommitment", "Overcommit", "Overprovisioning", "Überbuchung"], "Überprovisionierung (Overcommitment) nutzt aus, dass selten alle VMs gleichzeitig ihre volle Zuteilung brauchen. Sie erfordert Monitoring, sonst drohen Engpässe bei Lastspitzen."),
+      q.single("Die Muster GmbH möchte, dass jeder Sachbearbeiter einen eigenen virtuellen Windows-Desktop im Rechenzentrum erhält, auf den er per Thin Client zugreift. Wie heißt dieses Konzept?", ["Terminalserver (alle Nutzer teilen sich ein Server-Betriebssystem)", "Virtual Desktop Infrastructure (VDI)", "Container-Orchestrierung", "Typ-2-Virtualisierung am Arbeitsplatz"], 1, "Bei VDI erhält jeder Nutzer eine eigene Desktop-VM im Rechenzentrum. Beim Terminalserver teilen sich die Nutzer ein Server-Betriebssystem."),
+      q.multi("Welche Aussagen zur Servervirtualisierung sind richtig?", ["Mehrere schwach ausgelastete Server lassen sich auf einem Host konsolidieren.", "Fällt der Host aus, laufen die VMs auch ohne Cluster automatisch weiter.", "VMs lassen sich ohne Neuinstallation auf einen anderen Host verschieben.", "Überprovisionierter Arbeitsspeicher kann bei Lastspitzen zu Leistungseinbrüchen führen."], [0, 2, 3], "Ohne Cluster bzw. Hochverfügbarkeitsfunktion ist der Host ein Single Point of Failure: Fällt er aus, stehen alle VMs."),
+      q.single("Die Muster GmbH mietet bei einem Cloud-Anbieter virtuelle Server (IaaS). Wer ist für die Sicherheitsupdates des Gastbetriebssystems zuständig?", ["Der Cloud-Anbieter", "Die Muster GmbH als Kunde", "Der Hersteller der Serverhardware", "Niemand, virtuelle Server benötigen keine Updates"], 1, "Bei IaaS betreibt der Anbieter Hardware und Hypervisor. Betriebssystem, Anwendungen und Daten in der VM verwaltet der Kunde."),
+      q.open(
+        "Die Muster GmbH betreibt sechs ältere, schwach ausgelastete physische Server. Die Geschäftsführung fragt, ob sich eine Servervirtualisierung lohnt. Nenne drei Vorteile, zwei Nachteile bzw. Risiken und eine Maßnahme gegen den Ausfall des Virtualisierungshosts.",
+        "Vorteile: Konsolidierung auf weniger Hardware (bessere Auslastung, weniger Strom, Platz und Kühlung), schnelle Bereitstellung neuer Server über Vorlagen, Snapshots vor Änderungen, VMs hardwareunabhängig und auf andere Hosts verschiebbar, Isolation der Dienste. Nachteile/Risiken: Host als Single Point of Failure, Ressourcenkonkurrenz bzw. Leistungseinbußen bei Überprovisionierung, Investition in leistungsfähige Hardware, Lizenzkosten und Know-how, Hypervisor als zusätzliches Angriffsziel. Maßnahme: zweiter Host im Cluster mit gemeinsamem Speicher und Hochverfügbarkeit bzw. Live-Migration; zusätzlich regelmäßige Backups der VMs.",
+        "",
+        { difficulty: 2 },
+      ),
+    ],
+    cards: [
+      card("Hypervisor Typ 1 vs. Typ 2", "Typ 1 (bare metal): direkt auf der Hardware, z. B. ESXi, Hyper-V. Typ 2 (hosted): Anwendung auf einem Host-OS, z. B. VirtualBox, VMware Workstation.", true),
+      card("VM vs. Container", "VM: eigenes Gast-OS mit eigenem Kernel, starke Isolation. Container: teilt den Kernel des Hosts, klein, startet in Sekunden (z. B. Docker).", true),
+      card("Snapshot ≠ Backup", "Snapshot liegt auf demselben Speicher und hängt von der Basis-Festplatte ab – nur kurzfristig vor Änderungen nutzen, Backup separat.", true),
+      card("RAM-Bedarf Virtualisierungshost", "Summe RAM aller VMs + Hypervisor-Overhead + Reserve (z. B. 20–25 %).", true),
+      card("Überprovisionierung", "Mehr vCPUs, RAM oder Speicherplatz zuweisen als physisch vorhanden – bessere Auslastung, aber nur mit Monitoring."),
+      card("VDI", "Virtual Desktop Infrastructure: Jeder Nutzer hat eine eigene Desktop-VM im Rechenzentrum, Zugriff per Remote-Protokoll (z. B. RDP)."),
+      card("Intel VT-x / AMD-V", "CPU-Erweiterungen für Hardware-Virtualisierung; müssen im BIOS/UEFI aktiviert sein."),
+      card("Live-Migration", "Verschieben einer laufenden VM auf einen anderen Host ohne merkliche Unterbrechung, z. B. für Wartungsarbeiten."),
+    ],
+  },
+  {
     id: "ap1-it-sicherheit",
     part: "AP1",
     lf: "LF04",
@@ -286,6 +421,9 @@ Virtuelle LANs trennen z. B. Verwaltung, Produktion, Gäste auf einem Switch. Ta
         "Symmetrisch (AES): ein Schlüssel, schnell. Asymmetrisch (RSA/ECC): Schlüsselpaar.",
         "Signatur: mit privatem Schlüssel signieren, mit öffentlichem prüfen.",
         "MFA kombiniert Faktoren aus Wissen, Besitz und Inhärenz (Biometrie).",
+        "VPN: verschlüsselter Tunnel über ein unsicheres Netz. Site-to-Site verbindet Netze, Client-to-Site (Remote Access) einzelne Geräte mit dem Firmennetz.",
+        "VPN-Verfahren: IPsec (Schicht 3, ESP verschlüsselt), SSL/TLS-VPN (oft TCP 443), WireGuard (schlank, UDP).",
+        "Split Tunneling: nur Firmenverkehr durch den Tunnel. Ein VPN schützt den Transportweg, macht aber nicht anonym.",
       ],
       content: `## Schutzziele
 - **Vertraulichkeit**: Nur Berechtigte sehen Daten (Verschlüsselung, Rechte).
@@ -314,7 +452,41 @@ Technisch: Firewall, Updates, Virenschutz, Verschlüsselung, MFA, Backups, Loggi
 
 **Hashfunktion** (SHA-256): Einwegfunktion, feste Länge, Integritätsprüfung. Passwörter mit **Salt** und langsamen Verfahren (bcrypt, Argon2) speichern.
 
-**Digitale Signatur**: Hash mit **privatem** Schlüssel des Absenders signieren → Empfänger prüft mit dessen **öffentlichem** Schlüssel.`,
+**Digitale Signatur**: Hash mit **privatem** Schlüssel des Absenders signieren → Empfänger prüft mit dessen **öffentlichem** Schlüssel.
+
+## VPN (Virtual Private Network)
+Ein **VPN** baut über ein unsicheres Netz (meist das Internet) eine **verschlüsselte und authentifizierte Verbindung** auf. Für die Beteiligten wirkt es so, als wären sie direkt im selben privaten Netz. Damit schützt ein VPN Vertraulichkeit, Integrität und Authentizität der übertragenen Daten.
+
+**Tunneling**: Die ursprünglichen Datenpakete werden verschlüsselt und in neue Pakete eingepackt (gekapselt). Unterwegs sind nur die äußeren Pakete zwischen den beiden Tunnelendpunkten sichtbar, nicht der Inhalt.
+
+### Site-to-Site vs. Client-to-Site
+| | Site-to-Site | Client-to-Site (Remote Access) |
+|---|---|---|
+| verbindet | zwei Netze, z. B. Zentrale und Filiale | ein einzelnes Gerät mit dem Firmennetz |
+| Endpunkte | VPN-Gateways (Router/Firewall) an beiden Standorten | VPN-Client auf dem Gerät + VPN-Gateway der Firma |
+| für Nutzer | unsichtbar, dauerhaft aktiv | Nutzer baut die Verbindung auf und meldet sich an |
+| typisch | Standortvernetzung | Homeoffice, Außendienst |
+
+Weitere Bezeichnungen: **End-to-Site** für Client-to-Site, **End-to-End** für eine direkte Verbindung zweier einzelner Rechner.
+
+### VPN-Verfahren
+| Verfahren | Merkmale |
+|---|---|
+| **IPsec** | arbeitet auf Schicht 3; **ESP** verschlüsselt und sichert die Integrität, **AH** sichert nur Integrität und Authentizität (keine Verschlüsselung); Schlüsselaustausch per **IKE** (UDP 500, hinter NAT UDP 4500); verbreitet für Site-to-Site |
+| **SSL/TLS-VPN** | nutzt TLS wie HTTPS, oft über TCP 443 und kommt daher durch die meisten Firewalls; mit Client-Software (z. B. OpenVPN, Standardport UDP 1194, bei Bedarf auch TCP 443) oder clientlos über ein Webportal im Browser |
+| **WireGuard** | modern und schlank (wenig Code), aktuelle Kryptografie, Authentifizierung über Schlüsselpaare statt Zertifikate, nutzt UDP (Standardport 51820) |
+
+IPsec kennt den **Tunnelmodus** (das komplette IP-Paket wird gekapselt, typisch zwischen VPN-Gateways) und den **Transportmodus** (nur die Nutzdaten werden geschützt, z. B. zwischen zwei Hosts). Das alte **PPTP** gilt als unsicher und sollte nicht mehr eingesetzt werden.
+
+### Full Tunnel vs. Split Tunneling
+- **Full Tunnel**: Der gesamte Datenverkehr des Geräts läuft durch den Tunnel ins Firmennetz, auch Internetzugriffe. Die Firma kann alles über ihre Firewall filtern, das VPN-Gateway wird aber stärker belastet.
+- **Split Tunneling**: Nur der Verkehr ins Firmennetz läuft durch den Tunnel, alles andere geht direkt ins Internet. Das entlastet Gateway und Internetanbindung der Firma, dafür umgeht der Internetverkehr die Schutzmaßnahmen der Firma.
+
+### VPN ≠ Anonymität
+Ein VPN verschlüsselt nur die Strecke **bis zum VPN-Endpunkt**. Wer den Endpunkt betreibt (die Firma oder ein VPN-Anbieter), kann den Verkehr sehen und protokollieren; dahinter geht es ohne VPN-Verschlüsselung weiter. Anmeldungen, Cookies und Browser-Fingerprinting identifizieren Nutzer weiterhin. Ein VPN schützt außerdem nicht vor Phishing, Malware oder einem kompromittierten Endgerät.
+
+### Homeoffice und Datenschutz
+Werden im Homeoffice personenbezogene Daten verarbeitet, verlangt Art. 32 DSGVO geeignete technische und organisatorische Maßnahmen. Das VPN schützt den **Transportweg**, z. B. über das private WLAN. Hinzu kommen: **MFA** für die VPN-Anmeldung, verwaltete und aktuelle Firmengeräte mit Festplattenverschlüsselung, automatische Bildschirmsperre, klare Regeln (z. B. keine Firmendaten auf privaten Geräten) und Schulungen der Beschäftigten.`,
     },
     questions: [
       q.single("Ein Angreifer verändert unbemerkt Beträge in einer Rechnungsdatei. Welches Schutzziel ist verletzt?", ["Vertraulichkeit", "Integrität", "Verfügbarkeit", "Anonymität"], 1, "Unbefugte Veränderung → Integrität.", { placement: true, difficulty: 1 }),
@@ -325,6 +497,18 @@ Technisch: Firewall, Updates, Virenschutz, Verschlüsselung, MFA, Backups, Loggi
       q.single("Warum wird beim Speichern von Passwörtern ein Salt verwendet?", ["Damit Passwörter wieder entschlüsselt werden können", "Damit gleiche Passwörter unterschiedliche Hashes erhalten und Rainbow-Tables nicht helfen", "Um Speicherplatz zu sparen", "Damit die Anmeldung schneller geht"], 1, "Ein zufälliges Salt pro Passwort verhindert vorberechnete Angriffe (Rainbow Tables)."),
       q.open("Eine Mitarbeiterin erhält eine E-Mail der „IT-Abteilung“ mit der Bitte, ihr Passwort über einen Link zu bestätigen. Nenne drei Merkmale für Phishing und zwei Maßnahmen.", "Merkmale: Zeitdruck/Drohung, falsche/abweichende Absenderadresse, Link zu fremder Domain, Aufforderung zur Passworteingabe, Rechtschreibfehler. Maßnahmen: Link nicht anklicken, IT über bekannten Kanal informieren, Mitarbeiterschulungen, MFA, Spam-/Link-Filter, Meldebutton.", "", { difficulty: 2 }),
       q.single("Nach dem Maximumprinzip hat ein Server, auf dem eine Anwendung mit Schutzbedarf „sehr hoch“ läuft, den Schutzbedarf …", ["normal", "hoch", "sehr hoch", "den Durchschnitt aller Anwendungen"], 2, "Das System übernimmt den höchsten Schutzbedarf der Anwendungen."),
+      q.single("Eine Außendienstmitarbeiterin der Muster GmbH soll unterwegs mit ihrem Notebook auf den Dateiserver der Firma zugreifen. Welche VPN-Art passt?", ["Site-to-Site-VPN", "Client-to-Site-VPN (Remote Access)", "VLAN-Trunk", "Port-Forwarding auf den Dateiserver"], 1, "Ein einzelnes Gerät verbindet sich per VPN-Client mit dem VPN-Gateway der Firma → Client-to-Site (Remote Access). Port-Forwarding würde den Dateiserver ungeschützt ins Internet stellen.", { difficulty: 1, sources: ["L06", "L10"] }),
+      q.single("Zentrale und Filiale der Muster GmbH sollen dauerhaft über das Internet verbunden werden, ohne dass die Beschäftigten selbst eine Verbindung aufbauen müssen. Welche Lösung ist geeignet?", ["Client-to-Site-VPN auf jedem PC", "Site-to-Site-VPN zwischen den Firewalls beider Standorte", "Gäste-WLAN in beiden Standorten", "Unverschlüsselte Verbindung über eine feste IP-Adresse"], 1, "Ein Site-to-Site-VPN verbindet die beiden Netze über die VPN-Gateways. Für die Nutzer ist der Tunnel unsichtbar und dauerhaft aktiv.", { sources: ["L06", "L10"] }),
+      q.single("Welches IPsec-Protokoll verschlüsselt die Nutzdaten?", ["AH (Authentication Header)", "ESP (Encapsulating Security Payload)", "IKE (Internet Key Exchange)", "ARP (Address Resolution Protocol)"], 1, "ESP verschlüsselt und sichert die Integrität. AH sichert nur Integrität und Authentizität, IKE handelt die Schlüssel aus, ARP gehört nicht zu IPsec.", { sources: ["L06"] }),
+      q.multi("Welche Aussagen zu Split Tunneling sind richtig?", ["Nur der Verkehr ins Firmennetz läuft durch den VPN-Tunnel.", "Der gesamte Internetverkehr des Geräts wird über die Firmen-Firewall gefiltert.", "Das VPN-Gateway der Firma wird entlastet.", "Internetzugriffe des Geräts umgehen die Schutzmaßnahmen der Firma."], [0, 2, 3], "Beim Split Tunneling geht nur der Firmenverkehr durch den Tunnel. Dass alles über die Firmen-Firewall läuft, beschreibt den Full Tunnel.", { sources: ["L06", "L10"] }),
+      q.single("Ein Kollege sagt: „Mit einem kommerziellen VPN-Dienst bin ich im Internet anonym.“ Was trifft zu?", ["Stimmt, ein VPN verhindert jede Identifizierung.", "Nur bedingt: Der VPN-Anbieter kann den Verkehr sehen, und Anmeldungen oder Cookies identifizieren den Nutzer weiterhin.", "Stimmt, sofern WireGuard verwendet wird.", "Stimmt, weil das VPN die Daten bis zur Zielwebseite verschlüsselt."], 1, "Das VPN verschlüsselt nur bis zum VPN-Endpunkt. Der Betreiber sieht den Verkehr, und Logins, Cookies oder Fingerprinting machen Nutzer weiterhin erkennbar.", { sources: ["L06", "L10"] }),
+      q.short("Über welchen TCP-Port laufen SSL/TLS-VPNs häufig, damit sie Firewalls problemlos passieren? (Portnummer)", ["443", "TCP 443", "443/tcp"], "SSL/TLS-VPNs nutzen oft TCP 443 – denselben Port wie HTTPS, der in fast jeder Firewall freigegeben ist.", { sources: ["L06"] }),
+      q.open(
+        "Die Muster GmbH führt Homeoffice ein. Die Beschäftigten sollen von zu Hause auf Kundendaten im Firmennetz zugreifen. Beschreibe eine geeignete VPN-Lösung (Art und ein mögliches Verfahren) und nenne drei weitere Maßnahmen, damit der Zugriff sicher und datenschutzkonform ist.",
+        "VPN-Lösung: Client-to-Site-VPN (Remote Access) vom Firmen-Notebook zum VPN-Gateway der Firma, z. B. mit IPsec (IKEv2), einem SSL/TLS-VPN oder WireGuard; möglichst Full Tunnel, damit auch der Internetverkehr über die Firmen-Firewall läuft. Weitere Maßnahmen: MFA für die VPN-Anmeldung, verwaltete Firmengeräte mit aktuellen Updates, Virenschutz und Festplattenverschlüsselung, automatische Bildschirmsperre und Sichtschutz, Rechtevergabe nach Least Privilege, Homeoffice-Richtlinie (keine Firmendaten auf privaten Geräten, kein Ausdruck sensibler Daten), Schulung der Beschäftigten, Protokollierung der Zugriffe.",
+        "",
+        { sources: ["L09", "L10"] },
+      ),
     ],
     cards: [
       card("CIA-Schutzziele", "Confidentiality (Vertraulichkeit), Integrity (Integrität), Availability (Verfügbarkeit)", true),
@@ -333,6 +517,11 @@ Technisch: Firewall, Updates, Virenschutz, Verschlüsselung, MFA, Backups, Loggi
       card("MFA-Faktoren", "Wissen (Passwort), Besitz (Token, Handy), Inhärenz (Biometrie)", true),
       card("Hybride Verschlüsselung", "Sitzungsschlüssel asymmetrisch austauschen, Daten symmetrisch (schnell) verschlüsseln – z. B. TLS."),
       card("Maximumprinzip", "Ein System erbt den höchsten Schutzbedarf seiner Anwendungen."),
+      card("Site-to-Site vs. Client-to-Site", "Site-to-Site: verbindet zwei Netze über VPN-Gateways, dauerhaft. Client-to-Site (Remote Access): einzelnes Gerät mit VPN-Client ins Firmennetz.", true),
+      card("IPsec: AH vs. ESP", "AH: Integrität und Authentizität, keine Verschlüsselung. ESP: Verschlüsselung + Integrität. Schlüsselaustausch per IKE.", true),
+      card("Split Tunneling", "Nur Firmenverkehr durch den VPN-Tunnel, Internetverkehr direkt. Gegenteil: Full Tunnel (alles durch den Tunnel)."),
+      card("VPN ≠ Anonymität", "Verschlüsselt nur bis zum VPN-Endpunkt; der Betreiber sieht den Verkehr, Logins und Cookies identifizieren weiterhin."),
+      card("SSL/TLS-VPN vs. WireGuard", "SSL/TLS-VPN: basiert auf TLS, oft TCP 443, auch clientlos im Browser. WireGuard: schlank, modern, Schlüsselpaare, UDP."),
     ],
   },
   {
