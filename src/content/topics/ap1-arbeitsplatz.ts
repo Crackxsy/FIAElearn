@@ -438,4 +438,148 @@ Freundlich, verständlich, keine Fachbegriffe ohne Erklärung, aktiv zuhören. B
       card("Ausfallzeit aus Verfügbarkeit", "(1 − Verfügbarkeit) × Gesamtzeit, z. B. 0,001 × 8.760 h = 8,76 h"),
     ],
   },
+  {
+    id: "ap1-qualitaetsmanagement",
+    part: "AP1",
+    lf: "LF02",
+    title: "Qualitätsmanagement & Qualitätssicherung",
+    summary: "QS vs. QM, ISO 9001 und Audits, QM-Grundsätze, PDCA, KVP/Kaizen, TQM, Zehnerregel, Werkzeuge, Kennzahlen, Abnahme und Übergabe.",
+    weight: 3,
+    hours: 2.5,
+    difficulty: 2,
+    lesson: {
+      sources: ["O02", "L17", "O11"],
+      keyPoints: [
+        "QS ist Teil des QM: QS schafft Vertrauen, dass Anforderungen erfüllt werden; QM lenkt die ganze Organisation bezüglich Qualität.",
+        "ISO 9001 legt Anforderungen an ein QM-System fest. Zertifizierung freiwillig durch eine akkreditierte Zertifizierungsstelle, i. d. R. 3 Jahre mit jährlichen Überwachungsaudits.",
+        "PDCA: Plan – Do – Check – Act, danach beginnt der Zyklus von vorn (kontinuierliche Verbesserung).",
+        "Sieben QM-Grundsätze: Kundenorientierung, Führung, Engagement von Personen, prozessorientierter Ansatz, Verbesserung, faktengestützte Entscheidungsfindung, Beziehungsmanagement.",
+        "Zehnerregel: Je später ein Fehler entdeckt wird, desto teurer – pro Phase etwa Faktor 10.",
+        "Übergabe absichern: Checkliste, Testprotokoll, Abnahmeprotokoll mit Unterschrift, Einweisung, Dokumentation.",
+      ],
+      content: `## Worum geht es?
+Laut FIAusbV § 9 sollst du in der AP1 einen IT-Arbeitsplatz konfigurieren und testen und dabei die betrieblichen Vorgaben **zur Qualitätssicherung** einhalten – und die Leistungserbringung kontrollieren und protokollieren. Dahinter steht das **Qualitätsmanagement** des Unternehmens.
+
+## Qualität, Qualitätssicherung, Qualitätsmanagement
+- **Qualität** (nach ISO 9000): Grad, in dem ein Satz **inhärenter** Merkmale eines Objekts (Produkt, Dienstleistung, Prozess …) die Anforderungen erfüllt. Inhärent heißt: dem Objekt selbst innewohnend – der Preis gehört nicht dazu. Qualität heißt also *Anforderungen erfüllen* – nicht „möglichst teuer“.
+- **Qualitätssicherung (QS)**: Teil des QM. Schafft durch Vorgaben, Prüfungen und Nachweise Vertrauen, dass die Anforderungen erfüllt werden (z. B. Checkliste, Testprotokoll, Abnahmeprotokoll).
+- **Qualitätsmanagement (QM)**: alle abgestimmten Tätigkeiten zum Leiten und Lenken einer Organisation bezüglich Qualität: Qualitätspolitik und -ziele, Qualitätsplanung, -lenkung, -sicherung und -verbesserung.
+
+**Konstruktive QS** vermeidet Fehler von vornherein (Standards, Vorlagen, standardisierte Images, Schulung). **Analytische QS** findet Fehler (Tests, Prüfungen, Messungen, Reviews).
+
+## QM-System nach DIN EN ISO 9001
+- Internationale Norm mit **Anforderungen an ein QM-System** – branchenunabhängig, für Organisationen jeder Größe. Sie legt fest, *was* geregelt sein muss, nicht *wie*.
+- **Aktuelle Ausgabe**: ISO 9001:2026, veröffentlicht im September 2026. Zertifikate nach ISO 9001:2015 bleiben in einer Übergangsfrist bis 30. September 2029 gültig und müssen bis dahin umgestellt werden.
+- **Prozessorientierter Ansatz**: Abläufe werden als Prozesse mit Eingaben, Ergebnissen, Verantwortlichen und Kennzahlen gesteuert, ergänzt um risikobasiertes Denken. Die Norm folgt dem PDCA-Zyklus.
+- **Zertifizierung**: freiwillig. Sie erfolgt durch eine **akkreditierte Zertifizierungsstelle** (in Deutschland akkreditiert durch die DAkkS) – nicht durch die ISO selbst. Zertifiziert wird das QM-System, nicht ein einzelnes Produkt. Das Zertifikat gilt in der Regel 3 Jahre, mit jährlichen Überwachungsaudits und anschließender Rezertifizierung.
+- **Audit** = systematische, unabhängige Prüfung, ob Vorgaben eingehalten werden und wirksam sind.
+
+| Auditart | Wer prüft? |
+|---|---|
+| Internes Audit (First Party) | eigene Auditoren, z. B. QM-Beauftragte – von ISO 9001 gefordert |
+| Lieferantenaudit (Second Party) | ein Kunde prüft seinen Lieferanten |
+| Zertifizierungsaudit (Third Party) | unabhängige, akkreditierte Zertifizierungsstelle |
+
+## Die sieben QM-Grundsätze (ISO 9000)
+| Grundsatz | Im IT-Alltag |
+|---|---|
+| Kundenorientierung | Anforderungen der Anwender ermitteln und erfüllen |
+| Führung | Leitung legt Qualitätspolitik und -ziele fest und lebt sie vor |
+| Engagement von Personen | kompetente, beteiligte Mitarbeitende |
+| Prozessorientierter Ansatz | Abläufe als Prozesse steuern, z. B. den Ticketprozess |
+| Verbesserung | ständig besser werden (KVP) |
+| Faktengestützte Entscheidungsfindung | Entscheidungen auf Daten und Kennzahlen stützen |
+| Beziehungsmanagement | Beziehungen zu Lieferanten und Partnern pflegen |
+
+## PDCA-Zyklus (Deming-Kreis)
+1. **Plan**: Ist-Zustand und Ursachen analysieren, messbares Ziel und Maßnahmen planen.
+2. **Do**: Maßnahme umsetzen – zunächst im kleinen Rahmen (Pilot).
+3. **Check**: Ergebnisse messen und mit dem Ziel vergleichen.
+4. **Act**: Bei Erfolg als Standard festlegen und ausrollen, sonst Ursachen analysieren und neu planen.
+
+Danach beginnt der Zyklus von vorn – so entsteht kontinuierliche Verbesserung.
+
+| Phase | Beispiel: Service Desk der Muster GmbH |
+|---|---|
+| Plan | Viele Tickets betreffen dieselben Standardprobleme. Ziel: Erstlösungsquote in drei Monaten von 60 % auf 75 % steigern. Maßnahme: Wissensdatenbank mit Standardlösungen. |
+| Do | Wissensdatenbank vier Wochen lang im 1st Level einsetzen. |
+| Check | Erstlösungsquote messen (z. B. 76 %) und mit dem Ziel vergleichen. |
+| Act | Wissensdatenbank für alle verbindlich machen, Pflege im Ticketprozess verankern, nächstes Verbesserungsthema wählen. |
+
+## KVP, Kaizen und TQM
+- **Kaizen** (japanisch, etwa „Veränderung zum Besseren“): ständige Verbesserung in kleinen Schritten unter Beteiligung aller Mitarbeitenden.
+- **KVP** (kontinuierlicher Verbesserungsprozess): die betriebliche Umsetzung dieser Idee, z. B. durch Verbesserungsvorschläge, Teamrunden, Lessons Learned. Vorgehen meist nach PDCA.
+- Abgrenzung **Innovation**: großer, sprunghafter Wandel (z. B. Umstieg auf ein neues Ticketsystem) statt vieler kleiner Schritte.
+- **TQM** (Total Quality Management): umfassender Ansatz – Qualität ist Unternehmensphilosophie und Aufgabe **aller** Mitarbeitenden und Bereiche, langfristig auf Kundenzufriedenheit ausgerichtet. Ein bekanntes TQM-Modell ist das EFQM-Modell. TQM geht über die Anforderungen der ISO 9001 hinaus.
+
+## Fehlerkosten: Zehnerregel
+Faustregel: Mit jeder Phase, die ein Fehler unentdeckt bleibt, steigen die Kosten für seine Behebung etwa um den **Faktor 10**.
+
+| Fehler entdeckt … | relative Kosten |
+|---|---|
+| in Planung und Vorbereitung | 1 |
+| bei Einrichtung und Test vor der Übergabe | 10 |
+| beim Kunden nach der Übergabe | 100 |
+
+Je nach Quelle werden mehr Stufen genannt (bis 1.000). Die Faktoren sind Größenordnungen, keine exakten Werte. Folgerung: früh prüfen lohnt sich.
+
+## Werkzeuge
+- **Checkliste**: nichts vergessen, jeder arbeitet gleich, Ergebnis ist nachweisbar.
+- **Testprotokoll**: Testfall, erwartetes und tatsächliches Ergebnis, bestanden/nicht bestanden, Datum, Prüfer.
+- **Abnahme-/Übergabeprotokoll**: Datum, Beteiligte, Lieferumfang (inkl. Seriennummern), Testergebnisse, festgestellte Mängel mit Frist, Unterschriften.
+- **Ishikawa-Diagramm** (Ursache-Wirkungs- oder Fischgrätdiagramm): Das Problem steht am „Kopf“, mögliche Ursachen werden nach Kategorien gesammelt, z. B. 6M: Mensch, Maschine, Methode, Material, Mitwelt, Messung.
+
+## Kennzahlen (KPIs)
+Kennzahlen machen Qualität messbar – Grundlage für faktengestützte Entscheidungen.
+- **Erstlösungsquote** = im Erstkontakt gelöste Tickets ÷ alle Tickets × 100 %
+- **SLA-Erfüllungsquote** = fristgerecht gelöste Tickets ÷ alle Tickets × 100 %
+- **Nacharbeitsquote** = Arbeitsplätze mit Nacharbeit ÷ übergebene Arbeitsplätze × 100 %
+- **Kundenzufriedenheit**, z. B. per Kurzumfrage nach Ticketabschluss
+
+Beispiel: 1.000 Tickets, davon 720 im Erstkontakt gelöst → Erstlösungsquote **72 %**.
+
+## QS bei Einrichtung und Übergabe eines Arbeitsplatzes
+1. **Vorbereitung**: Anforderungen (z. B. Pflichtenheft) als Prüfgrundlage, Checkliste und standardisiertes Image bereitstellen.
+2. **Einrichtung**: nach Checkliste installieren und konfigurieren – Updates, Virenschutz, Lizenzen, Benutzerkonto mit passenden Rechten, Netzwerk und Drucker, Datensicherung, Inventarisierung.
+3. **Test**: Funktionstests mit Testprotokoll (Anmeldung, Netzwerk, Drucken, Fachanwendungen).
+4. **Abnahme**: Der Kunde prüft gegen die vereinbarten Anforderungen und bestätigt mit dem Abnahmeprotokoll; Mängel werden mit Frist festgehalten.
+5. **Einweisung**: zielgruppengerecht in die Nutzung einweisen, Supportweg nennen, Teilnahme dokumentieren.
+6. **Dokumentation**: Konfiguration, Inventar, Lizenzen und Protokolle ablegen – Passwörter nie im Klartext ins Protokoll.
+
+Ist die Einrichtung als Werkvertrag vereinbart, hat die Abnahme rechtliche Folgen: Die Vergütung wird fällig, die Gefahr geht auf den Kunden über und die Verjährung der Mängelansprüche beginnt.
+
+## Abgrenzung
+Hier geht es um die Qualität von **Prozessen und Dienstleistungen**. Die Produktqualität von Software (Qualitätsmodell nach ISO/IEC 25010) findest du im Thema „Anforderungen, User Stories & Qualität“ (AP2).
+
+## Prüfungstipp
+Nenne in Situationsaufgaben **konkrete Maßnahmen** passend zum Fall (Checkliste, Testprotokoll, Abnahmeprotokoll, Einweisung) statt allgemeiner Floskeln – und übe, Tätigkeiten aus einem Beispiel den PDCA-Phasen zuzuordnen.`,
+    },
+    questions: [
+      q.single("Welche Aussage zu Qualitätssicherung (QS) und Qualitätsmanagement (QM) ist richtig?", ["QS und QM sind dasselbe.", "QS ist ein Teil des QM.", "QM ist ein Teil der QS.", "QS betrifft nur Software, QM nur Hardware."], 1, "QM umfasst alle Tätigkeiten zum Leiten und Lenken einer Organisation bezüglich Qualität (Politik, Ziele, Planung, Lenkung, Sicherung, Verbesserung). Die QS ist ein Teil davon.", { placement: true, difficulty: 1 }),
+      q.multi("Welche der folgenden Punkte gehören zu den sieben Grundsätzen des Qualitätsmanagements nach ISO 9000?", ["Kundenorientierung", "Führung", "Gewinnmaximierung", "Prozessorientierter Ansatz", "Faktengestützte Entscheidungsfindung", "Möglichst wenige Lieferanten"], [0, 1, 3, 4], "Die sieben Grundsätze: Kundenorientierung, Führung, Engagement von Personen, prozessorientierter Ansatz, Verbesserung, faktengestützte Entscheidungsfindung, Beziehungsmanagement. Gewinnmaximierung und „möglichst wenige Lieferanten“ gehören nicht dazu.", { sources: ["L17"] }),
+      q.single("Die Muster GmbH möchte ihr Qualitätsmanagementsystem nach ISO 9001 zertifizieren lassen. Wer stellt das Zertifikat aus?", ["Die ISO in Genf", "Die zuständige IHK", "Eine akkreditierte Zertifizierungsstelle", "Der eigene QM-Beauftragte nach einem internen Audit"], 2, "Zertifikate stellen unabhängige, akkreditierte Zertifizierungsstellen aus (in Deutschland akkreditiert durch die DAkkS). Die ISO entwickelt nur die Norm; ein internes Audit ersetzt keine Zertifizierung.", { placement: true }),
+      q.single("Die QM-Beauftragte der Muster GmbH prüft im Auftrag der Geschäftsleitung, ob die IT-Abteilung die festgelegten Abläufe zur Arbeitsplatzeinrichtung einhält. Um welche Art von Audit handelt es sich?", ["Internes Audit (First Party)", "Lieferantenaudit (Second Party)", "Zertifizierungsaudit (Third Party)", "Überwachungsaudit der Zertifizierungsstelle"], 0, "Die Organisation prüft sich selbst mit eigenem Personal → internes Audit. Second Party = Kunde prüft Lieferanten, Third Party = unabhängige Zertifizierungsstelle (auch deren Überwachungsaudits)."),
+      q.short("Bringe die Schritte in die Reihenfolge des PDCA-Zyklus. Gib die Buchstaben ohne Leerzeichen an (z. B. ABCD).", ["CADB", "C-A-D-B", "C,A,D,B"], "C = Plan (analysieren, Ziel und Maßnahme planen), A = Do (Pilot), D = Check (Ergebnis mit Ziel vergleichen), B = Act (als Standard festlegen).", { scenario: "Bei der Muster GmbH gibt es viele Nachbesserungen an neu eingerichteten Notebooks. A) Eine neue Einrichtungs-Checkliste wird bei den nächsten zehn Notebooks testweise eingesetzt. B) Die Checkliste wird verbindlich in den Einrichtungsprozess aufgenommen. C) Die Nachbesserungen werden ausgewertet, das Ziel „Nacharbeitsquote halbieren“ festgelegt und die Checkliste entworfen. D) Die Nacharbeitsquote der zehn Pilotgeräte wird gemessen und mit dem Ziel verglichen.", difficulty: 2 }),
+      q.single("Nach einem vierwöchigen Pilot vergleicht das Support-Team die gemessene Erstlösungsquote mit dem geplanten Zielwert. In welcher Phase des PDCA-Zyklus befindet es sich?", ["Plan", "Do", "Check", "Act"], 2, "Check: Ergebnisse messen und mit dem Ziel vergleichen. Erst in Act wird entschieden, ob die Maßnahme Standard wird oder ein neuer Zyklus nötig ist."),
+      q.calc("Bei der Muster GmbH wird für einen neuen Arbeitsplatz die falsche Software-Edition eingeplant. Wäre der Fehler noch in der Planung aufgefallen, hätte die Korrektur 20 € gekostet. Wie hoch sind die Kosten nach der Zehnerregel, wenn der Fehler erst beim Kunden nach der Übergabe entdeckt wird? (Stufen: Planung → Einrichtung/Test → beim Kunden)", 2000, "Der Fehler bleibt zwei Phasen unentdeckt: 20 € × 10 × 10 = 2.000 €.", { unit: "€", tolerance: 1, steps: ["Planung: 20 €", "Einrichtung/Test: 20 € × 10 = 200 €", "Beim Kunden: 200 € × 10 = 2.000 €"], difficulty: 2 }),
+      q.calc("Der Service Desk der Muster GmbH hat im Quartal 1.240 Tickets bearbeitet, davon wurden 868 bereits im Erstkontakt gelöst. Wie hoch ist die Erstlösungsquote in Prozent?", 70, "868 ÷ 1.240 = 0,7 → 70 %.", { unit: "%", tolerance: 0.1, steps: ["Erstlösungsquote = im Erstkontakt gelöste Tickets ÷ alle Tickets × 100 %", "868 ÷ 1.240 = 0,70", "0,70 × 100 % = 70 %"] }),
+      q.single("Welche Aussage beschreibt den kontinuierlichen Verbesserungsprozess (KVP) am besten?", ["Einmalige große Umstellung durch externe Berater", "Ständige Verbesserung in kleinen Schritten unter Beteiligung der Mitarbeitenden", "Jährliche Prüfung durch die Zertifizierungsstelle", "Austausch aller Geräte nach Ablauf der Garantie"], 1, "KVP (nach dem japanischen Kaizen) setzt auf viele kleine, laufende Verbesserungen, an denen alle mitwirken. Große, sprunghafte Veränderungen nennt man Innovation."),
+      q.single("Ein Team sammelt mögliche Ursachen für häufige Druckerstörungen und ordnet sie den Kategorien Mensch, Maschine, Methode, Material, Mitwelt und Messung zu. Welches Werkzeug nutzt es?", ["Gantt-Diagramm", "Ishikawa-Diagramm", "Nutzwertanalyse", "Netzplan"], 1, "Das Ishikawa-Diagramm (Ursache-Wirkungs- oder Fischgrätdiagramm) strukturiert mögliche Ursachen eines Problems, z. B. nach den 6M."),
+      q.multi("Welche Angaben gehören in ein Abnahmeprotokoll bei der Übergabe eines Arbeitsplatzes?", ["Datum und Beteiligte", "Lieferumfang inkl. Seriennummern", "Ergebnisse der Funktionstests", "Festgestellte Mängel mit Frist zur Behebung", "Das Passwort des Benutzers im Klartext", "Unterschriften von Kunde und Auftragnehmer"], [0, 1, 2, 3, 5], "Das Abnahmeprotokoll dokumentiert die Übergabe verbindlich. Passwörter gehören niemals in ein Protokoll."),
+      q.open("Du richtest für die Muster GmbH zwölf neue Büroarbeitsplätze ein. Beschreibe vier qualitätssichernde Maßnahmen von der Vorbereitung bis zur Übergabe.", "Z. B.:\n1) Checkliste für Einrichtung und Konfiguration (Updates, Virenschutz, Lizenzen, Benutzerrechte, Netzwerk/Drucker) – alle Plätze einheitlich, nichts wird vergessen.\n2) Standardisiertes Image bzw. Softwareverteilung – vermeidet Konfigurationsfehler (konstruktive QS).\n3) Funktionstest je Arbeitsplatz mit Testprotokoll (Anmeldung, Netzwerk, Drucken, Fachanwendungen) – Fehler vor der Übergabe finden (Zehnerregel).\n4) Abnahme mit dem Kunden und Abnahmeprotokoll (Lieferumfang, Seriennummern, Testergebnisse, Mängel mit Frist, Unterschriften).\n5) Zielgruppengerechte Einweisung der Mitarbeitenden, Teilnahme dokumentieren.\n6) Dokumentation von Konfiguration, Inventar und Lizenzen; Feedback auswerten (KVP).", "Bewerte dich selbst: Hast du vier konkrete, zur Situation passende Maßnahmen genannt und jeweils kurz begründet?", { difficulty: 2 }),
+    ],
+    cards: [
+      card("Qualitätssicherung vs. Qualitätsmanagement", "QS: Teil des QM – schafft durch Vorgaben, Prüfungen und Nachweise Vertrauen, dass Anforderungen erfüllt werden. QM: alle Tätigkeiten zum Leiten und Lenken der Organisation bezüglich Qualität (Politik, Ziele, Planung, Lenkung, Sicherung, Verbesserung).", true),
+      card("PDCA-Zyklus (Deming-Kreis)", "Plan: analysieren, Ziel und Maßnahme planen. Do: im kleinen Rahmen umsetzen. Check: Ergebnis mit Ziel vergleichen. Act: als Standard festlegen oder neu ansetzen – dann von vorn.", true),
+      card("DIN EN ISO 9001", "Norm mit Anforderungen an ein QM-System, prozessorientiert. Zertifizierung freiwillig durch eine akkreditierte Zertifizierungsstelle; Zertifikat i. d. R. 3 Jahre gültig, jährliche Überwachungsaudits. Aktuelle Ausgabe: ISO 9001:2026 (Übergangsfrist für 2015er-Zertifikate bis 30.09.2029).", true),
+      card("Sieben QM-Grundsätze (ISO 9000)", "Kundenorientierung, Führung, Engagement von Personen, prozessorientierter Ansatz, Verbesserung, faktengestützte Entscheidungsfindung, Beziehungsmanagement.", true),
+      card("Zehnerregel (Fehlerkosten)", "Mit jeder Phase, die ein Fehler unentdeckt bleibt, steigen die Behebungskosten etwa um Faktor 10: Planung 1 → Einrichtung/Test 10 → beim Kunden 100.", true),
+      card("Abnahmeprotokoll", "Datum, Beteiligte, Lieferumfang mit Seriennummern, Testergebnisse, Mängel mit Frist, Unterschriften. Dokumentiert die Übergabe verbindlich.", true),
+      card("Internes vs. externes Audit", "Intern (First Party): eigene Auditoren prüfen die eigenen Prozesse. Extern: Kunde prüft Lieferanten (Second Party) oder Zertifizierungsstelle prüft (Third Party)."),
+      card("KVP / Kaizen", "Kontinuierliche Verbesserung in kleinen Schritten, alle Mitarbeitenden beteiligt; Vorgehen meist nach PDCA. Gegenstück: Innovation (großer Sprung)."),
+      card("TQM", "Total Quality Management: Qualität als Unternehmensphilosophie und Aufgabe aller Mitarbeitenden und Bereiche, langfristig kundenorientiert (z. B. EFQM-Modell)."),
+      card("Ishikawa-Diagramm", "Ursache-Wirkungs-/Fischgrätdiagramm: mögliche Ursachen eines Problems nach Kategorien sammeln, z. B. 6M (Mensch, Maschine, Methode, Material, Mitwelt, Messung)."),
+      card("Erstlösungsquote", "Im Erstkontakt gelöste Tickets ÷ alle Tickets × 100 %. Typische Support-Kennzahl (KPI)."),
+    ],
+  },
 ];
