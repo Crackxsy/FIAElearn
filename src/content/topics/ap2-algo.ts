@@ -652,4 +652,157 @@ Falsche Schleifengrenze, nicht initialisierte Variable, Zuweisung statt Vergleic
       card("Debugger", "Breakpoints, Step over/into, Variablen beobachten, Call Stack ansehen."),
     ],
   },
+  {
+    id: "algo-regulaere-ausdruecke",
+    part: "AP2_ALGO",
+    lf: "LF11a",
+    title: "Reguläre Ausdrücke",
+    summary: "Zeichenklassen, Quantoren, Anker, Gruppen, gierig vs. genügsam, Escaping, Eingabevalidierung und ReDoS.",
+    weight: 3,
+    hours: 2.5,
+    difficulty: 3,
+    lesson: {
+      sources: ["O05", "L19"],
+      keyPoints: [
+        "Zeichenklassen: [a-z] Bereich, [^0-9] Negation, \\d Ziffer, \\w Wortzeichen, \\s Leerraum, . beliebiges Zeichen.",
+        "Quantoren gelten für das Element davor: * (0+), + (1+), ? (0/1), {n}, {n,}, {n,m}.",
+        "Ohne Anker ^…$ reicht ein Teiltreffer – zur Validierung immer die ganze Eingabe prüfen.",
+        "| hat die niedrigste Priorität: ^(ja|nein)$ statt ^ja|nein$.",
+        ".* ist gierig, .*? genügsam; Metazeichen wörtlich mit \\ escapen (\\. \\$ \\().",
+        "Client-Prüfung ist Komfort, die Server-Prüfung ist Pflicht. Verschachtelte Quantoren wie (a+)+ → ReDoS-Gefahr.",
+      ],
+      content: `## Wozu reguläre Ausdrücke?
+Ein **regulärer Ausdruck** (kurz Regex) beschreibt ein **Textmuster**. Typische Einsätze: Eingaben prüfen (PLZ, E-Mail, Datum), Textstellen suchen und ersetzen, Daten aus Text herausziehen (z. B. alle Zahlen einer Logzeile). In der Prüfung sollst du meist ein Muster **lesen** („Welche Eingaben passen?“) oder ein einfaches Muster **schreiben**.
+
+## Literale und Metazeichen
+Normale Zeichen wie \`a\`, \`7\` oder \`-\` stehen für sich selbst (**Literale**). Einige Zeichen haben eine Sonderbedeutung (**Metazeichen**):
+
+| Zeichen | Bedeutung |
+|---|---|
+| \`.\` | ein beliebiges Zeichen (außer Zeilenumbruch) |
+| \`^\` und \`$\` | Anfang und Ende der Eingabe (Anker) |
+| \`*\`, \`+\`, \`?\`, \`{n,m}\` | Quantoren (Wiederholung) |
+| \`[ ]\` | Zeichenklasse (genau ein Zeichen aus einer Menge) |
+| \`( )\` | Gruppe |
+| \`\\|\` | Alternative (oder) |
+| \`\\\` | Escape-Zeichen: hebt die Sonderbedeutung auf |
+
+## Zeichenklassen
+| Muster | passt auf genau ein Zeichen … |
+|---|---|
+| \`[abc]\` | a, b oder c |
+| \`[a-z]\` | Kleinbuchstabe von a bis z (ohne ä, ö, ü, ß!) |
+| \`[A-Za-z0-9]\` | Buchstabe oder Ziffer (mehrere Bereiche kombinierbar) |
+| \`[^0-9]\` | jedes Zeichen außer einer Ziffer (\`^\` direkt nach \`[\` = Negation) |
+| \`\\d\` | Ziffer – in JavaScript und Java wie \`[0-9]\`, in Python 3 auch andere Unicode-Ziffern wie „１２３４５“ (für eine strikte Prüfung dort \`[0-9]\` oder \`re.ASCII\`) |
+| \`\\w\` | Wortzeichen: Buchstabe, Ziffer oder \`_\` |
+| \`\\s\` | Leerraum: Leerzeichen, Tabulator, Zeilenumbruch |
+| \`\\D\`, \`\\W\`, \`\\S\` | jeweils das Gegenteil von \`\\d\`, \`\\w\`, \`\\s\` |
+| \`.\` | beliebiges Zeichen außer Zeilenumbruch |
+
+Achtung: \`\\w\` umfasst in JavaScript und Java standardmäßig nur ASCII – „Müller“ besteht dort **nicht** nur aus Wortzeichen, in Python 3 dagegen schon. Innerhalb von \`[ ]\` verlieren die meisten Metazeichen ihre Bedeutung: \`[.]\` ist ein echter Punkt.
+
+## Quantoren
+Ein Quantor gilt für das Element **direkt davor** (Zeichen, Zeichenklasse oder Gruppe).
+
+| Quantor | Bedeutung | Beispiel (ganze Eingabe) |
+|---|---|---|
+| \`*\` | 0-mal oder öfter | \`ab*\` passt auf a, ab, abbb |
+| \`+\` | 1-mal oder öfter | \`ab+\` passt auf ab, abbb – nicht auf a |
+| \`?\` | 0- oder 1-mal (optional) | \`https?\` passt auf http und https |
+| \`{n}\` | genau n-mal | \`\\d{5}\` passt auf 12345 |
+| \`{n,}\` | mindestens n-mal | \`\\d{2,}\` passt auf 12 und 123456 |
+| \`{n,m}\` | n- bis m-mal | \`[a-z]{2,4}\` passt auf ab bis abcd |
+
+## Anker und Wortgrenzen
+- \`^\` markiert den Anfang, \`$\` das Ende der Eingabe.
+- **Ohne Anker** genügt ein Teiltreffer: JavaScript \`test()\`, Java \`find()\` und Python \`re.search()\` finden \`\\d{5}\` auch in „PLZ 123456“.
+- Zur Eingabeprüfung deshalb immer \`^…$\` verwenden oder eine Methode mit Vollabgleich: Java \`matches()\`, Python \`re.fullmatch()\`. In Python und Java passt \`$\` (ohne Multiline-Modus) auch vor einem abschließenden Zeilenumbruch – \`re.fullmatch()\` bzw. \`matches()\` ist dort sicherer.
+- \`\\b\` ist eine **Wortgrenze**: \`\\bRot\\b\` findet „Rot“ in „Rot und Blau“, aber nicht in „Rotation“.
+
+## Gruppen und Alternation
+- \`( )\` fasst Teile zusammen, damit ein Quantor für alles gilt: \`(ab)+\` passt auf ab, abab, ababab.
+- \`|\` bedeutet „oder“ und hat die **niedrigste Priorität**: \`^ja|nein$\` heißt \`(^ja)|(nein$)\` und akzeptiert auch „jawohl“. Richtig ist \`^(ja|nein)$\`.
+- Gruppen speichern ihren Treffer (Capturing Group): auslesbar mit \`group(1)\` in Java und Python bzw. \`treffer[1]\` in JavaScript. \`(?:…)\` gruppiert, ohne zu speichern.
+
+## Gierig vs. genügsam
+Quantoren sind standardmäßig **gierig** (greedy): Sie nehmen so viel Text wie möglich. Ein angehängtes \`?\` macht sie **genügsam** (lazy): so wenig wie möglich.
+\`\`\`
+Text:      "Rot" oder "Blau"
+".*"   →   "Rot" oder "Blau"
+".*?"  →   "Rot"
+\`\`\`
+
+## Escaping
+Soll ein Metazeichen wörtlich gemeint sein, steht ein Backslash davor: \`\\.\` (Punkt), \`\\$\`, \`\\(\`, \`\\?\`, \`\\\\\` (Backslash selbst). Ohne Escape passt \`^\\d{2}.\\d{2}$\` auch auf „12x34“.
+
+In **Java-Strings** muss der Backslash zusätzlich für den Compiler escapt werden: \`"\\\\d{5}"\`. Python verwendet Raw-Strings (\`r"\\d{5}"\`), JavaScript Regex-Literale (\`/\\d{5}/\`).
+
+## Typische Prüfungsmuster und ihre Grenzen
+| Zweck | Muster | Grenze |
+|---|---|---|
+| Deutsche PLZ | \`^\\d{5}$\` | prüft nur das Format: „00000“ passt, existiert aber nicht |
+| Datum TT.MM.JJJJ | \`^\\d{2}\\.\\d{2}\\.\\d{4}$\` | „31.02.2026“ und „99.99.2026“ passen |
+| Datum genauer | \`^(0[1-9]\\|[12]\\d\\|3[01])\\.(0[1-9]\\|1[0-2])\\.\\d{4}$\` | „31.04.2026“ und „29.02.2027“ passen immer noch |
+| E-Mail (vereinfacht) | \`^[\\w.+\\-]+@[\\w\\-]+(\\.[\\w\\-]+)*\\.[A-Za-z]{2,}$\` | lässt „a..b@example.org“ zu; ob die Adresse existiert, zeigt nur eine Bestätigungsmail |
+| Kfz-Kennzeichen (vereinfacht) | \`^[A-ZÄÖÜ]{1,3}-[A-Z]{1,2} [1-9]\\d{0,3}$\` | prüft keine echten Ortskürzel und keine Zusätze wie E oder H |
+| Uhrzeit HH:MM | \`^([01]\\d\\|2[0-3]):[0-5]\\d$\` | 00:00 bis 23:59, ohne Sekunden |
+
+Faustregel: Regex prüft das **Format**. Ob ein Datum im Kalender existiert, prüft man anschließend mit einer Datums-Funktion der Sprache.
+
+## Eingabevalidierung: Client und Server
+- **Client** (HTML-Attribut \`pattern\`, JavaScript): schnelle Rückmeldung beim Tippen – aber leicht zu umgehen (Entwicklertools, direkter HTTP-Request).
+- **Server**: prüft **immer** noch einmal. Nur diese Prüfung ist verlässlich.
+- **Whitelist statt Blacklist**: beschreiben, was erlaubt ist – nicht, was verboten ist. Ganze Eingabe prüfen und die Länge begrenzen.
+- Das HTML-Attribut \`pattern\` prüft automatisch die ganze Eingabe (wie mit \`^…$\`). Browser übersetzen es mit dem strengeren \`v\`-Flag: Einen Bindestrich in \`[ ]\` deshalb als \`\\-\` schreiben, sonst ist das Muster ungültig und wird ignoriert.
+- Regex ersetzt keine Prepared Statements: Gegen SQL-Injection hilft die Parametrisierung der Abfrage, nicht ein Filter auf Sonderzeichen.
+
+## Verwendung in Java, Python und JavaScript
+\`\`\`java
+boolean ok = plz.matches("\\\\d{5}");             // ganze Zeichenkette
+Matcher m = Pattern.compile("\\\\d+").matcher(text);
+while (m.find()) System.out.println(m.group()); // alle Treffer
+\`\`\`
+\`\`\`python
+import re
+ok = re.fullmatch(r"[0-9]{5}", plz) is not None  # ganze Zeichenkette, nur 0–9
+zahlen = re.findall(r"\\d+", text)               # Liste aller Treffer
+\`\`\`
+\`\`\`javascript
+const ok = /^\\d{5}$/.test(plz);      // test() sucht nur – deshalb Anker
+const zahlen = text.match(/\\d+/g);   // Array aller Treffer oder null
+\`\`\`
+
+## Sicherheit: ReDoS
+Verschachtelte Quantoren wie \`(a+)+\` oder \`(\\w+\\s?)*\` können bei einer ungünstigen, **nicht passenden** Eingabe exponentiell viele Rückverfolgungsschritte (Backtracking) auslösen. Schon eine kurze Eingabe blockiert dann die CPU für Sekunden – ein Angriff namens **ReDoS** (Regular Expression Denial of Service). Gegenmittel: keine verschachtelten Quantoren über dieselben Zeichen, Eingabelänge vorher begrenzen, Muster mit langen Fehleingaben testen.
+
+## Prüfungstipp
+Lies ein Muster **von links nach rechts** und prüfe jede Antwortmöglichkeit Zeichen für Zeichen. Achte besonders auf: Sind Anker gesetzt? Ist der Punkt escapt? Gilt der Quantor für ein Zeichen oder eine Gruppe? Stimmt die Groß-/Kleinschreibung?`,
+    },
+    questions: [
+      q.multi("Welche Artikelnummern werden von diesem Muster akzeptiert?", ["ABC-1234", "XYZ-0007", "abc-1234", "AB-1234", "ABC-12345", "ABC1234"], [0, 1], "Gefordert sind genau drei Großbuchstaben, ein Bindestrich und genau vier Ziffern; ^ und $ verlangen, dass nichts davor oder danach steht. „abc“ ist klein geschrieben, „AB“ zu kurz, „12345“ hat eine Ziffer zu viel und „ABC1234“ fehlt der Bindestrich.", { code: "^[A-Z]{3}-\\d{4}$", codeLang: "regex", placement: true }),
+      q.multi("Welche Kennzeichen akzeptiert dieses vereinfachte Muster für deutsche Kfz-Kennzeichen?", ["HA-XY 123", "MK-A 7", "LÖ-B 9999", "B-AB 0123", "DO-ABC 12", "E-Q 12345", "HA XY 123"], [0, 1, 2], "Aufbau: 1–3 Buchstaben (auch Ä, Ö, Ü), Bindestrich, 1–2 Buchstaben, Leerzeichen, eine Zahl von 1 bis 9999 ohne führende Null ([1-9] gefolgt von 0 bis 3 Ziffern). „0123“ beginnt mit 0, „ABC“ sind drei Buchstaben, „12345“ hat fünf Ziffern und bei „HA XY 123“ fehlt der Bindestrich.", { code: "^[A-ZÄÖÜ]{1,3}-[A-Z]{1,2} [1-9]\\d{0,3}$", codeLang: "regex", difficulty: 3 }),
+      q.single("Ein Datum soll im Format TT.MM.JJJJ eingegeben werden. Geprüft wird in JavaScript mit muster.test(eingabe). Welches Muster akzeptiert genau die Eingaben aus zwei Ziffern, Punkt, zwei Ziffern, Punkt und vier Ziffern?", ["\\d{2}\\.\\d{2}\\.\\d{4}", "^\\d{2}.\\d{2}.\\d{4}$", "^\\d{2}\\.\\d{2}\\.\\d{4}$", "^\\d{2}\\.\\d{2}\\.\\d{2,4}$"], 2, "Ohne Anker findet test() auch einen Teiltreffer in „x24.12.20261“. Der unescapte Punkt steht für ein beliebiges Zeichen und lässt „24-12-2026“ zu. {2,4} erlaubt auch zweistellige Jahre. Grenze: Auch das richtige Muster akzeptiert „31.02.2026“ – ob das Datum existiert, prüft man danach mit einer Datums-Funktion.", { placement: true }),
+      q.trace("Was gibt das Programm aus? (Werte mit Leerzeichen getrennt)", "import re\ntext = \"Lager 3: 120 Stück, Lager 17: 8 Stück\"\nzahlen = re.findall(r\"\\d+\", text)\nprint(len(zahlen), zahlen[1])", ["4 120"], "re.findall liefert alle nicht überlappenden Treffer von links nach rechts: [\"3\", \"120\", \"17\", \"8\"]. Das sind 4 Treffer, zahlen[1] ist der zweite: \"120\". \\d+ ist gierig und nimmt deshalb 120 als Ganzes, nicht 1, 2 und 0 einzeln.", { codeLang: "python" }),
+      q.trace("Was gibt der Code aus? (beide Ausgaben mit Leerzeichen getrennt)", "const s = \"[A][B][C]\";\nconsole.log(s.match(/\\[.*\\]/)[0]);\nconsole.log(s.match(/\\[.*?\\]/)[0]);", ["[A][B][C] [A]"], "\\[ und \\] sind escapte, also wörtliche eckige Klammern. .* ist gierig und läuft bis zur letzten „]“ → [A][B][C]. .*? ist genügsam und hört bei der ersten „]“ auf → [A].", { codeLang: "javascript" }),
+      q.single("Welcher Teil ergänzt ^___$ zu einer Prüfung auf genau fünf Ziffern (deutsche Postleitzahl)?", ["\\d{5}", "\\D{5}", "\\d{5,}", "[0-9]{4,5}"], 0, "\\d{5} (in JavaScript und Java gleichwertig zu [0-9]{5}): eine Ziffer, genau fünfmal. \\D steht für „keine Ziffer“, {5,} lässt auch sechs und mehr Ziffern zu, {4,5} auch vierstellige Eingaben. Die Anker ^ und $ sorgen dafür, dass „123456“ oder „PLZ 12345“ abgelehnt werden. Grenze: Das Muster prüft nur das Format – „00000“ passt, ist aber keine vergebene PLZ. In Python passt \\d auch auf andere Unicode-Ziffern; dort für eine strikte Prüfung [0-9]{5} oder re.ASCII verwenden."),
+      q.single("Ein Formularfeld soll nur „ja“ oder „nein“ zulassen. Geprüft wird in JavaScript mit /^ja|nein$/.test(eingabe). Was stimmt?", ["Das Muster lässt genau „ja“ und „nein“ zu.", "| hat die niedrigste Priorität: Das Muster bedeutet (^ja)|(nein$) und akzeptiert z. B. auch „jawohl“ und „keinesfalls nein“.", "Das Muster ist ungültig, weil ^ und $ nicht zusammen mit | verwendet werden dürfen.", "Das Muster akzeptiert nur die Eingabe „janein“."], 1, "Die Alternative trennt das ganze Muster in „^ja“ und „nein$“. Richtig wäre ^(ja|nein)$ – die Gruppe begrenzt die Alternative, die Anker gelten für beide Wörter.", { difficulty: 3 }),
+      q.single("Mit test() (Teiltreffer genügt) soll das Wort „Rot“ in „Rot und Blau“ und in „Farbe: Rot“ gefunden werden, aber nicht in „Rotation“ oder „Rotwein“. Welches Muster leistet das?", ["Rot", "^Rot$", "\\bRot\\b", "Rot\\s"], 2, "\\b ist eine Wortgrenze zwischen einem Wortzeichen und einem Nicht-Wortzeichen (oder Anfang/Ende). „Rot“ allein findet auch „Rotation“, ^Rot$ verlangt, dass die ganze Eingabe „Rot“ ist, und Rot\\s scheitert am Ende von „Farbe: Rot“, weil dort kein Leerzeichen folgt."),
+      q.multi("Welche Eingaben akzeptiert dieses vereinfachte E-Mail-Muster in JavaScript?", ["max.muster@example.org", "info+shop@mail.example.com", "max@localhost", "max muster@example.org", "@example.org", "a..b@example.org"], [0, 1, 5], "Vor dem @ sind Wortzeichen, Punkt, Plus und Minus erlaubt (mindestens eins), danach Domainteile und eine Endung aus mindestens zwei Buchstaben. „localhost“ hat keine Endung, das Leerzeichen ist nicht erlaubt und vor dem @ muss etwas stehen. „a..b@example.org“ passt, obwohl zwei Punkte hintereinander nicht zulässig sind – eine typische Grenze vereinfachter Muster.", { code: "^[\\w.+\\-]+@[\\w\\-]+(\\.[\\w\\-]+)*\\.[A-Za-z]{2,}$", codeLang: "regex", difficulty: 3 }),
+      q.single("Welches Muster kann bei einer langen, nicht passenden Eingabe wie „aaaaaaaaaaaaaaaaaaaaaaaaa!“ katastrophales Backtracking (ReDoS) auslösen?", ["^\\d{5}$", "^(a+)+$", "^[a-z]{1,20}$", "^(ja|nein)$"], 1, "Bei (a+)+ kann die Engine die a-Folge auf exponentiell viele Arten auf die innere und äußere Wiederholung verteilen und probiert sie alle durch, bevor sie aufgibt. Abhilfe: verschachtelte Quantoren vermeiden (hier genügt ^a+$) und die Eingabelänge begrenzen.", { difficulty: 3 }),
+      q.trace("Was gibt das Programm aus?", "String[] eingaben = {\"12345\", \"PLZ 12345\", \"123456\"};\nPattern p = Pattern.compile(\"\\\\d{5}\");\nint voll = 0, teil = 0;\nfor (String e : eingaben) {\n    if (e.matches(\"\\\\d{5}\")) voll++;\n    if (p.matcher(e).find()) teil++;\n}\nSystem.out.println(voll + \" \" + teil);", ["1 3"], "matches() verlangt, dass die ganze Zeichenkette passt – das gilt nur für „12345“. find() sucht einen Teiltreffer und wird in allen drei Eingaben fündig (auch in „123456“ stecken fünf Ziffern hintereinander). Ausgabe: 1 3.", { codeLang: "java", difficulty: 4 }),
+      q.open("Kundennummern haben das Format KD-JJJJ-NNNNN (z. B. KD-2026-00042). Gib ein passendes Muster an und beschreibe, wo und wie die Eingabe in einer Webanwendung geprüft werden sollte. Nenne auch eine Grenze der Prüfung.", "Muster: ^KD-\\d{4}-\\d{5}$ (Anker, damit die ganze Eingabe geprüft wird; alternativ [0-9] statt \\d). Client: HTML-Attribut pattern oder JavaScript für eine schnelle Rückmeldung – nur Komfort, weil sich der Browser umgehen lässt. Server: dieselbe Prüfung zwingend wiederholen (z. B. Java matches(), Python re.fullmatch()), Länge begrenzen und bei Fehler eine verständliche Meldung zurückgeben statt weiterzuverarbeiten. Grenze: Das Muster prüft nur das Format, nicht ob die Kundennummer existiert – das klärt eine Datenbankabfrage mit Prepared Statement.", "Punkte für: korrektes Muster mit Ankern, Prüfung auf Client UND Server mit Begründung, Grenze der reinen Formatprüfung."),
+    ],
+    cards: [
+      card("Anker ^ und $", "^ = Anfang, $ = Ende der Eingabe. Ohne Anker genügt ein Teiltreffer: \\d{5} findet auch etwas in „PLZ 123456“.", true),
+      card("Quantoren", "* 0-mal oder öfter, + mindestens 1-mal, ? optional, {n} genau n, {n,} mindestens n, {n,m} n bis m – jeweils für das Element davor.", true),
+      card("Zeichenklassen", "[a-z] Bereich, [^0-9] alles außer Ziffern, \\d Ziffer, \\w Buchstabe/Ziffer/_, \\s Leerraum, . beliebiges Zeichen.", true),
+      card("Gierig vs. genügsam", ".* nimmt so viel wie möglich, .*? so wenig wie möglich. Bei \"Rot\" oder \"Blau\" liefert \".*\" alles, \".*?\" nur \"Rot\"."),
+      card("Escaping", "Metazeichen wörtlich mit Backslash: \\. \\$ \\( \\?. In Java-Strings doppelt: \"\\\\d{5}\"; Python: r\"\\d{5}\"."),
+      card("Alternation |", "Niedrigste Priorität: ^ja|nein$ bedeutet (^ja)|(nein$). Richtig: ^(ja|nein)$."),
+      card("Vollabgleich vs. Teiltreffer", "Ganze Eingabe: Java matches(), Python re.fullmatch(), HTML pattern. Teiltreffer: JavaScript test(), Java find(), Python re.search()."),
+      card("Validierung Client & Server", "Client: schnelle Rückmeldung, aber umgehbar. Server: prüft immer – nur das ist verlässlich. Whitelist, ganze Eingabe, Länge begrenzen.", true),
+      card("ReDoS", "Verschachtelte Quantoren wie (a+)+ → exponentielles Backtracking bei nicht passender Eingabe. Muster entschärfen, Eingabelänge begrenzen."),
+    ],
+  },
 ];
