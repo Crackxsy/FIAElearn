@@ -35,11 +35,13 @@ Voraussetzung: Node.js ≥ 22 (siehe `.nvmrc`; Node 20 erhält seit April 2026 k
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env       # Windows-Eingabeaufforderung: copy .env.example .env
 npx prisma migrate dev     # legt prisma/dev.db an
 npm run db:seed            # Themen, Fragen, Karten, Quellen
 npm run dev                # http://localhost:3000
 ```
+
+Alle npm-Skripte laufen auf Windows, macOS und Linux. Unter Windows funktionieren die Befehle in PowerShell unverändert. `better-sqlite3` bringt vorkompilierte Binärdateien für aktuelle Node-LTS-Versionen mit; nur bei sehr neuen Node-Versionen ohne passendes Binary werden die Visual Studio Build Tools („Desktopentwicklung mit C++“) zum Kompilieren benötigt.
 
 ## Skripte
 

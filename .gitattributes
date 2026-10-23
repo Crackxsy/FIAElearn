@@ -1,0 +1,8 @@
+# Einheitliche Zeilenenden: LF im Repository und im Arbeitsverzeichnis,
+# unabhängig von core.autocrlf (Windows) – vermeidet CRLF-Rauschen in Diffs.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.ico binary
