@@ -31,7 +31,7 @@ Next.js 16 (App Router, Server Actions) · TypeScript · Tailwind CSS 4 · Prism
 
 ## Schnellstart
 
-Voraussetzung: Node.js ≥ 20.
+Voraussetzung: Node.js ≥ 22 (siehe `.nvmrc`; Node 20 erhält seit April 2026 keine Updates mehr).
 
 ```bash
 npm install
@@ -48,8 +48,8 @@ npm run dev                # http://localhost:3000
 | `npm run dev` | Entwicklungsserver |
 | `npm run build` / `npm start` | Produktion |
 | `npm test` | Unit-Tests (Noten, Planer, Scoring, Inhalte inkl. SQL-Musterlösungen) |
-| `npm run test:e2e` | End-to-End-Test (Playwright, eigene Test-DB) |
-| `npm run lint` / `npm run typecheck` | Codequalität |
+| `npm run test:e2e` | Produktions-Build + End-to-End-Test (Playwright, eigene Test-DB); einmalig vorher `npx playwright install chromium` |
+| `npm run lint` / `npm run typecheck` | Codequalität (`typecheck` erzeugt vorher die Routentypen mit `next typegen`) |
 | `npm run db:seed` | Inhalte einspielen/aktualisieren (idempotent) |
 | `npm run db:studio` | Datenbank ansehen |
 | `npm run db:postgres` | Schema auf PostgreSQL umstellen, Tabellen anlegen, seeden |
