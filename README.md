@@ -65,7 +65,7 @@ npm run db:postgres   # erzeugt prisma/schema.postgres.prisma, generate + db pus
 npm run build && npm start
 ```
 
-Prisma erlaubt keinen Provider-Wechsel per Umgebungsvariable – deshalb erzeugt `scripts/use-postgres.mjs` eine Postgres-Kopie des Schemas. Die App wählt den passenden Treiber automatisch anhand von `DATABASE_URL`.
+Prisma erlaubt keinen Provider-Wechsel per Umgebungsvariable – deshalb erzeugt `scripts/use-postgres.mjs` eine Postgres-Kopie des Schemas. Die App wählt den passenden Treiber automatisch anhand von `DATABASE_URL`. Auch `npm run build` erzeugt den Prisma-Client passend zu `DATABASE_URL` (`scripts/prisma-generate.mjs`) – ein reines `prisma generate` würde den SQLite-Client erzeugen, der mit PostgreSQL nicht startet.
 
 ## Projektstruktur
 

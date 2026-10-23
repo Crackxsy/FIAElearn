@@ -1,0 +1,48 @@
+name: PostgreSQL
+
+# Prüft den Produktionsweg aus dem README: db:postgres, Build, danach
+# Datenbankzugriff mit dem vom Build erzeugten Prisma-Client.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postgres-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres:
+    name: PostgreSQL-Produktionspfad
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fiaelearn
+          POSTGRES_PASSWORD: fiaelearn
+          POSTGRES_DB: fiaelearn
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fiaelearn"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://fiaelearn:fiaelearn@localhost:5432/fiaelearn?schema=public
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:postgres
+      - run: npm run build
+      # Seed nutzt den vom Build erzeugten Client – schlägt fehl, wenn der
+      # Build einen SQLite-Client erzeugt hat.
+      - run: npm run db:seed
