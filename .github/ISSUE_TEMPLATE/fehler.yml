@@ -1,0 +1,31 @@
+name: Programmfehler
+description: Etwas in der App funktioniert nicht wie erwartet
+title: "Fehler: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Was passiert?
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Seite … öffnen
+        2. Auf … klicken
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hast du erwartet?
+  - type: input
+    id: umgebung
+    attributes:
+      label: Umgebung
+      description: Browser und Gerät; bei lokaler Installation auch Betriebssystem und Node-Version
+      placeholder: z. B. Firefox 144, Windows 11, Node 22

@@ -1,0 +1,27 @@
+name: Thema oder Funktion vorschlagen
+description: Ein prüfungsrelevantes Thema fehlt oder eine Funktion würde beim Lernen helfen
+title: "Vorschlag: "
+labels: ["vorschlag"]
+body:
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: Vorschlag
+    validations:
+      required: true
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Prüfungsbereich
+      options:
+        - AP1
+        - AP2 – Projekt
+        - AP2 – Planen eines Softwareproduktes
+        - AP2 – Algorithmen
+        - AP2 – WiSo
+        - kein Inhalt (Funktion der App)
+  - type: textarea
+    id: beleg
+    attributes:
+      label: Warum prüfungsrelevant?
+      description: z. B. Prüfungskatalog, Lernfeld, Aufgabe aus einer Übungsprüfung (bitte keine Original-Prüfungsaufgaben einfügen)

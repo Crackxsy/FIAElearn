@@ -81,7 +81,7 @@ tests/               Unit- und E2E-Tests
 
 ## Inhalte erweitern
 
-Neue Themen/Fragen in `src/content/topics/*.ts` ergänzen (Helfer `q.single`, `q.calc`, `q.sql`, …), dann `npm test` (prüft u. a. alle SQL-Musterlösungen) und `npm run db:seed`.
+Neue Themen/Fragen in `src/content/topics/*.ts` ergänzen (Helfer `q.single`, `q.calc`, `q.sql`, …), dann `npm test` (prüft u. a. alle SQL-Musterlösungen) und `npm run db:seed`. Regeln für Inhalte, Code und Pull Requests stehen in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Quellen
 
