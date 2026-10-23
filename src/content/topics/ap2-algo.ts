@@ -589,6 +589,337 @@ Beispiel Überweisung: Abbuchen + Gutschreiben in einer Transaktion, bei Fehler 
     ],
   },
   {
+    id: "algo-db-vertiefung",
+    part: "AP2_ALGO",
+    lf: "LF11a",
+    title: "Datenbanken vertieft: Transaktionen, Trigger, Prozeduren, NoSQL",
+    summary: "Isolationsprobleme und -stufen, Trigger, Stored Procedures und Functions, NoSQL-Typen, CAP, BASE, Big Data, OLTP/OLAP, Data Warehouse und ETL.",
+    weight: 3,
+    hours: 4,
+    difficulty: 3,
+    lesson: {
+      sources: ["O05", "L18"],
+      keyPoints: [
+        "Isolationsprobleme: Lost Update, Dirty Read, Non-Repeatable Read, Phantom Read – eine höhere Isolationsstufe verhindert mehr, kostet aber Parallelität.",
+        "Trigger laufen automatisch bei INSERT, UPDATE oder DELETE: BEFORE zum Prüfen/Ändern, AFTER z. B. zum Protokollieren.",
+        "Stored Procedure: Aufruf mit CALL, führt Aktionen aus. Stored Function: liefert einen Wert und ist in SQL-Ausdrücken nutzbar.",
+        "Prozeduren schützen nur dann vor SQL-Injection, wenn Parameter gebunden werden und intern kein SQL per String-Verkettung entsteht.",
+        "NoSQL-Typen: Key-Value, dokumentenorientiert, Wide-Column (oft „spaltenorientiert“ genannt), Graph.",
+        "CAP: Bei einer Netzwerkpartition muss ein verteiltes System zwischen Konsistenz und Verfügbarkeit wählen.",
+        "OLTP = Tagesgeschäft, OLAP = Analyse; ein Data Warehouse wird per ETL aus den operativen Systemen befüllt.",
+      ],
+      content: `## Worum es geht
+Dieses Thema baut auf „SQL: INSERT, UPDATE, DELETE & CREATE TABLE“ auf (ACID, COMMIT, ROLLBACK). Neu sind parallele Transaktionen, Logik in der Datenbank (Trigger, Prozeduren, Funktionen) und Datenhaltung jenseits relationaler Tabellen (NoSQL, Big Data, Data Warehouse). Die Syntaxbeispiele sind **PostgreSQL** – MySQL, SQL Server und Oracle weichen teils deutlich ab.
+
+## Transaktionen steuern
+\`\`\`sql
+BEGIN;   -- Standard-SQL: START TRANSACTION
+UPDATE konto SET saldo = saldo - 100 WHERE id = 1;
+UPDATE konto SET saldo = saldo + 100 WHERE id = 2;
+COMMIT;  -- dauerhaft speichern
+-- bei einem Fehler stattdessen: ROLLBACK;
+\`\`\`
+- **Autocommit**: Ohne explizites BEGIN ist in vielen DBMS jede einzelne Anweisung eine eigene Transaktion.
+- **Savepoints**: \`SAVEPOINT sp1;\` … \`ROLLBACK TO SAVEPOINT sp1;\` nimmt nur den Teil nach dem Savepoint zurück.
+- Nach COMMIT sind die Änderungen auch nach einem Absturz noch da (**Dauerhaftigkeit**, technisch über das Transaktionsprotokoll).
+
+## Isolationsprobleme
+Laufen Transaktionen parallel und sind nicht ausreichend voneinander isoliert, entstehen typische Fehler:
+
+| Problem | Was passiert? |
+|---|---|
+| **Lost Update** | Zwei Transaktionen lesen denselben Wert und schreiben nacheinander zurück – die erste Änderung geht verloren. |
+| **Dirty Read** | T1 liest Daten, die T2 geändert, aber noch nicht committet hat. Macht T2 ein ROLLBACK, hat T1 mit Daten gerechnet, die es nie gab. |
+| **Non-Repeatable Read** | T1 liest dieselbe Zeile zweimal und erhält verschiedene Werte, weil T2 die Zeile dazwischen geändert oder gelöscht und committet hat. |
+| **Phantom Read** | T1 wiederholt eine Abfrage mit derselben Bedingung und erhält zusätzliche Zeilen, weil T2 passende Zeilen eingefügt (oder so geändert, dass sie passen) und committet hat. |
+
+### Isolationsstufen (SQL-Standard)
+| Stufe | Dirty Read | Non-Repeatable Read | Phantom Read |
+|---|---|---|---|
+| READ UNCOMMITTED | möglich | möglich | möglich |
+| READ COMMITTED | verhindert | möglich | möglich |
+| REPEATABLE READ | verhindert | verhindert | möglich |
+| SERIALIZABLE | verhindert | verhindert | verhindert |
+
+Der Standard legt fest, was **mindestens** verhindert wird – einzelne DBMS sind strenger. Höhere Stufe = mehr Schutz, aber weniger Parallelität und mehr abgebrochene Transaktionen. Einstellen direkt nach BEGIN mit \`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;\` (PostgreSQL auch kurz: \`BEGIN ISOLATION LEVEL SERIALIZABLE;\`) – Standard in PostgreSQL ist READ COMMITTED.
+
+### Lost Update vermeiden
+- **In der Datenbank rechnen** statt in der Anwendung: \`UPDATE artikel SET bestand = bestand - 2 WHERE id = 5;\`
+- **Pessimistisches Sperren**: \`SELECT … FOR UPDATE\` sperrt die gelesene Zeile bis zum Ende der Transaktion (z. B. PostgreSQL, MySQL, Oracle).
+- **Optimistisches Sperren**: Versionsspalte mitlesen und beim Schreiben prüfen: \`UPDATE … SET …, version = version + 1 WHERE id = 5 AND version = 7\`. Werden 0 Zeilen geändert, war jemand schneller → neu laden.
+
+**Deadlock**: T1 wartet auf eine Sperre von T2 und T2 auf eine von T1. Das DBMS erkennt das und bricht eine der beiden Transaktionen ab (ROLLBACK) – die Anwendung muss sie wiederholen.
+
+## Datenbankobjekte im Überblick
+| Objekt | Zweck | Wie genutzt? |
+|---|---|---|
+| **View** (Sicht) | gespeicherte Abfrage, wirkt wie eine virtuelle Tabelle | \`SELECT * FROM sicht\` |
+| **Index** | Zugriffsstruktur (meist B-Baum): schnelleres Suchen und Sortieren, dafür etwas langsameres Schreiben | automatisch durch den Optimierer |
+| **Trigger** | Code, der bei einem Ereignis automatisch läuft | INSERT, UPDATE oder DELETE auf einer Tabelle |
+| **Stored Procedure** | gespeicherte Folge von Anweisungen | \`CALL name(…)\`, in SQL Server \`EXEC name …\` |
+| **Stored Function** | berechnet und liefert einen Wert | in Ausdrücken, z. B. \`SELECT f(x) FROM …\` |
+
+\`\`\`sql
+CREATE VIEW offene_bestellungen AS
+SELECT b.id, k.name, b.datum
+FROM bestellung b JOIN kunde k ON k.id = b.kunde_id
+WHERE b.status = 'offen';
+\`\`\`
+
+## Trigger
+Ein **Trigger** gehört zu einer Tabelle und einem Ereignis (INSERT, UPDATE, DELETE) und wird **automatisch** ausgeführt – niemand ruft ihn auf.
+- **BEFORE**: läuft vor dem Schreiben → Werte prüfen, korrigieren oder ergänzen (z. B. E-Mail kleinschreiben, Zeitstempel setzen) oder die Änderung mit einem Fehler abbrechen.
+- **AFTER**: läuft nach dem Schreiben → Folgeaktionen, z. B. **Protokollierung** (Audit-Log).
+- **FOR EACH ROW** (einmal pro betroffener Zeile) oder **FOR EACH STATEMENT** (einmal pro Anweisung) – nicht jedes DBMS kann beides.
+- Zeilentrigger sehen **OLD** (alte Werte, bei UPDATE und DELETE) und **NEW** (neue Werte, bei INSERT und UPDATE).
+
+In PostgreSQL ruft ein Trigger eine eigene Trigger-Funktion auf:
+\`\`\`sql
+CREATE FUNCTION preis_protokollieren() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO preis_log (artikel_id, alt, neu, geaendert_am)
+  VALUES (OLD.id, OLD.preis, NEW.preis, now());
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_preis_log
+AFTER UPDATE OF preis ON artikel
+FOR EACH ROW
+EXECUTE FUNCTION preis_protokollieren();
+\`\`\`
+**Einsatzzwecke**: Änderungsprotokoll (wer hat wann was geändert), Integritätsregeln, die sich mit Constraints nicht ausdrücken lassen, automatisch gepflegte Werte wie „zuletzt geändert am“.
+
+**Risiken**: „unsichtbare“ Logik, die im Anwendungscode nicht auftaucht; Leistungseinbußen bei Massenänderungen; Trigger-Ketten (ein Trigger löst weitere aus) bis hin zur Rekursion; schwer zu testen und zu debuggen; herstellerspezifische Syntax. Ein Fehler im Trigger lässt in gängigen DBMS auch die auslösende Anweisung scheitern.
+
+## Stored Procedures und Functions
+\`\`\`sql
+-- Funktion: liefert einen Wert, nutzbar in Abfragen (preis als NUMERIC)
+CREATE FUNCTION brutto(netto NUMERIC) RETURNS NUMERIC
+LANGUAGE SQL
+AS $$ SELECT round(netto * 1.19, 2) $$;
+
+SELECT bezeichnung, brutto(preis) FROM artikel;
+
+-- Prozedur: führt Aktionen aus, Aufruf mit CALL
+CREATE PROCEDURE bestand_buchen(p_artikel INT, p_menge INT)
+LANGUAGE SQL
+AS $$
+  UPDATE artikel SET bestand = bestand - p_menge WHERE id = p_artikel;
+$$;
+
+CALL bestand_buchen(5, 2);
+\`\`\`
+
+| | Stored Procedure | Stored Function |
+|---|---|---|
+| Ergebnis | kein Rückgabewert nötig; Ausgaben über OUT-Parameter oder Ergebnismengen | liefert einen Rückgabewert (Einzelwert oder Tabelle) |
+| Aufruf | eigenständig mit CALL bzw. EXEC | innerhalb von SQL-Ausdrücken (SELECT, WHERE …) |
+| Daten ändern | typischer Zweck | je nach DBMS eingeschränkt (SQL Server: nicht erlaubt) |
+| COMMIT/ROLLBACK im Rumpf | in vielen DBMS möglich (PostgreSQL ab Version 11) | in gängigen DBMS nicht erlaubt |
+
+**Vorteile**: Logik nah an den Daten (weniger Netzwerk-Roundtrips), von mehreren Anwendungen wiederverwendbar, Rechte lassen sich auf Prozeduren statt auf Tabellen vergeben (in PostgreSQL z. B. mit SECURITY DEFINER), Ausführungspläne werden je nach DBMS zwischengespeichert.
+
+**Nachteile**: herstellerspezifische Sprachen (PL/pgSQL, T-SQL, PL/SQL) binden an ein DBMS; Geschäftslogik verteilt sich auf Anwendung und Datenbank; schwerer zu versionieren, zu testen und zu debuggen; zusätzliche Last auf dem Datenbankserver.
+
+### Prozeduren und SQL-Injection
+Parameter werden als **Werte** übergeben, nicht als SQL-Text. Das schützt – aber nur, wenn:
+1. die Anwendung die Prozedur selbst parametrisiert aufruft (Platzhalter \`?\`, keine String-Verkettung) und
+2. die Prozedur intern kein dynamisches SQL aus den Parametern zusammensetzt.
+
+Grundlagen zu SQL-Injection und Prepared Statements: Thema „Sichere Softwareentwicklung“.
+
+## NoSQL
+„Not only SQL“: nicht-relationale Datenbanken, meist ohne festes Schema und auf horizontale Skalierung (viele Server) ausgelegt.
+
+| Typ | Datenmodell | Beispiele | Typischer Einsatz |
+|---|---|---|---|
+| **Key-Value** | Schlüssel → Wert | Redis | Cache, Sitzungsdaten, Warenkorb |
+| **Dokumentenorientiert** | JSON-ähnliche Dokumente mit flexiblen Feldern | MongoDB, CouchDB | Produktkataloge mit unterschiedlichen Merkmalen, Content-Management |
+| **Wide-Column** (oft „spaltenorientiert“ genannt) | Zeilen mit flexiblen Spalten in Spaltenfamilien, verteilt gespeichert | Apache Cassandra, HBase | sehr große Datenmengen mit hoher Schreiblast, z. B. Sensor- und Logdaten |
+| **Graph** | Knoten und Kanten (Beziehungen) | Neo4j | soziale Netzwerke, Empfehlungen, Routen, Betrugserkennung |
+
+Relationale Datenbanken bleiben erste Wahl bei fester Struktur, referenzieller Integrität und strengen Transaktionsanforderungen (z. B. Buchhaltung).
+
+## CAP-Theorem
+Ein **verteiltes** Datensystem (mehrere Knoten) kann nicht in jeder Lage alle drei Eigenschaften garantieren:
+- **C**onsistency: Jeder Lesezugriff liefert den zuletzt geschriebenen Stand oder einen Fehler – egal, welcher Knoten antwortet.
+- **A**vailability: Jede Anfrage an einen funktionierenden Knoten bekommt eine fehlerfreie Antwort (nicht unbedingt mit dem neuesten Stand).
+- **P**artition Tolerance: Das System arbeitet weiter, auch wenn die Netzwerkverbindung zwischen Knoten ausfällt (Partition).
+
+Netzwerkausfälle lassen sich in verteilten Systemen nie ausschließen. Die eigentliche Aussage lautet daher: **Bei einer Netzwerkpartition muss das System zwischen Konsistenz und Verfügbarkeit wählen.** Ein CP-System verweigert dann lieber die Antwort, als veraltete Daten zu liefern (z. B. Kontostand). Ein AP-System antwortet immer, notfalls mit einem veralteten Stand (z. B. Like-Zähler).
+
+> Die Kurzform „2 aus 3“ ist eine Vereinfachung: Ohne Partition sind C und A gleichzeitig erreichbar. Und das C in CAP (gleicher Stand auf allen Knoten) ist nicht das C aus ACID (Integritätsregeln sind eingehalten).
+
+## BASE vs. ACID
+| Merkmal | ACID | BASE |
+|---|---|---|
+| Vorrang | Konsistenz | Verfügbarkeit |
+| Konsistenz | sofort nach dem COMMIT | „irgendwann“ (Eventual Consistency) |
+| Typisch für | relationale DBMS, Buchungen, Zahlungen | viele verteilte NoSQL-Systeme, Feeds, Zähler |
+| Skalierung | eher vertikal (stärkerer Server) | horizontal (mehr Server) |
+
+**BASE** = **B**asically **A**vailable (das System antwortet), **S**oft State (der Zustand kann sich durch laufende Replikation noch ändern), **E**ventually Consistent (alle Knoten sind *irgendwann* auf demselben Stand). Viele NoSQL-Systeme bieten inzwischen auch Transaktionen – ACID und BASE beschreiben die Grundausrichtung, keine starre Grenze.
+
+## Big Data
+Datenbestände, die mit klassischen Mitteln kaum noch zu speichern und auszuwerten sind. Beschrieben über die **V**:
+- **Volume**: sehr große Datenmenge (Tera- bis Petabyte)
+- **Velocity**: hohe Geschwindigkeit, mit der Daten entstehen und verarbeitet werden müssen (Datenströme, Echtzeit)
+- **Variety**: Vielfalt der Formate – strukturiert (Tabellen), semistrukturiert (JSON, XML), unstrukturiert (Texte, Bilder, Videos)
+- häufig ergänzt: **Veracity** (Glaubwürdigkeit und Qualität der Daten) und **Value** (wirtschaftlicher Nutzen)
+
+Typische Werkzeuge: verteilte Speicherung und Verarbeitung (z. B. Apache Hadoop, Apache Spark), NoSQL-Datenbanken, Data Lakes.
+
+## OLTP vs. OLAP
+| | OLTP (Online Transaction Processing) | OLAP (Online Analytical Processing) |
+|---|---|---|
+| Zweck | Tagesgeschäft: Bestellungen, Buchungen, Kasse | Auswertungen, Berichte, Entscheidungsunterstützung |
+| Zugriffe | viele kurze Lese- und Schreibtransaktionen | wenige komplexe, überwiegend lesende Abfragen |
+| Daten | aktuell, detailliert, normalisiert | historisch, oft verdichtet, denormalisiert (Sternschema) |
+| Beispiel | „Bestellung 4711 anlegen“ | „Umsatz je Region und Quartal der letzten fünf Jahre“ |
+
+## Data Warehouse und ETL
+Ein **Data Warehouse (DWH)** ist eine eigene Datenbank für Analysen. Es führt Daten aus mehreren operativen Systemen **themenorientiert, vereinheitlicht und mit Historie** zusammen und wird nur lesend ausgewertet – so bremsen Auswertungen das Tagesgeschäft nicht aus.
+
+Befüllt wird es regelmäßig (z. B. nächtlich) im **ETL-Prozess**:
+1. **Extract** – Daten aus den Quellen lesen (ERP, Webshop-Datenbank, CSV-Dateien, APIs)
+2. **Transform** – bereinigen (Dubletten, fehlende Werte), vereinheitlichen (Formate, Schlüssel, Währungen), verknüpfen, verdichten
+3. **Load** – in das DWH laden
+
+**Sternschema**: zentrale **Faktentabelle** mit Kennzahlen (z. B. Menge, Umsatz) und Fremdschlüsseln auf **Dimensionstabellen** (Zeit, Filiale, Artikel, Kunde).
+- **Data Mart**: kleiner, fachbezogener Ausschnitt eines DWH (z. B. nur Vertrieb)
+- **Data Lake**: speichert Rohdaten im Ursprungsformat; die Struktur wird erst beim Auswerten festgelegt (*schema on read*)
+- **ELT**: Daten werden zuerst geladen und erst im Zielsystem transformiert`,
+    },
+    questions: [
+      q.trace(
+        "Was liefert die letzte Abfrage?",
+        "-- konto: (id 1, saldo 500), (id 2, saldo 200)\nBEGIN;\nUPDATE konto SET saldo = saldo - 300 WHERE id = 1;\nUPDATE konto SET saldo = saldo + 300 WHERE id = 2;\nROLLBACK;\nSELECT saldo FROM konto WHERE id = 2;",
+        ["200"],
+        "ROLLBACK nimmt alle Änderungen seit BEGIN zurück – beide Konten haben wieder ihren Ausgangsstand. Mit COMMIT statt ROLLBACK wäre es 500.",
+        { codeLang: "sql", placement: true, difficulty: 2 },
+      ),
+      q.trace(
+        "Zwei Kassen verkaufen fast gleichzeitig denselben Artikel (3 bzw. 2 Stück). Die Anwendung rechnet den neuen Bestand selbst aus. Welcher Bestand steht am Ende in der Tabelle?",
+        "-- Ausgangslage: artikel (id 5, bestand 10)\n-- Isolationsstufe READ COMMITTED, keine Sperren\n\nT1: SELECT bestand FROM artikel WHERE id = 5;   -- liest 10\nT2: SELECT bestand FROM artikel WHERE id = 5;   -- liest 10\nT1: UPDATE artikel SET bestand = 7 WHERE id = 5;  -- 10 − 3\nT1: COMMIT;\nT2: UPDATE artikel SET bestand = 8 WHERE id = 5;  -- 10 − 2\nT2: COMMIT;",
+        ["8"],
+        "Lost Update: T2 überschreibt den Wert von T1 mit einem Ergebnis, das auf dem veralteten Stand 10 beruht. Richtig wäre 5. Abhilfe: in der Datenbank rechnen (SET bestand = bestand - 2), SELECT … FOR UPDATE oder optimistisches Sperren mit Versionsspalte.",
+        { codeLang: "sql", difficulty: 3 },
+      ),
+      q.single(
+        "T2 ändert einen Kontostand, hat aber noch nicht committet. T1 liest diesen geänderten Wert und rechnet damit weiter. Danach macht T2 ein ROLLBACK. Wie heißt dieses Problem?",
+        ["Lost Update", "Dirty Read", "Phantom Read", "Deadlock"],
+        1,
+        "Dirty Read: Lesen nicht festgeschriebener Daten. Ab der Isolationsstufe READ COMMITTED ist das ausgeschlossen.",
+      ),
+      q.multi(
+        "Welche Aussagen zu Triggern treffen zu?",
+        [
+          "Ein Trigger wird automatisch bei INSERT, UPDATE oder DELETE auf seiner Tabelle ausgeführt.",
+          "Ein Trigger muss von der Anwendung ausdrücklich mit CALL aufgerufen werden.",
+          "Ein BEFORE-Trigger auf Zeilenebene kann die neuen Werte (NEW) prüfen oder ändern, bevor sie gespeichert werden.",
+          "Bei einem DELETE stehen im zeilenweisen Trigger nur die alten Werte (OLD) zur Verfügung.",
+          "Trigger machen eine Anwendung übersichtlicher, weil ihre Logik im Anwendungscode nicht auftaucht.",
+        ],
+        [0, 2, 3],
+        "Trigger feuern ereignisgesteuert, CALL gehört zu Prozeduren. Dass Trigger-Logik im Anwendungscode nicht sichtbar ist, gilt gerade als Risiko („versteckte“ Logik).",
+      ),
+      q.trace(
+        "Die Tabelle artikel enthält 6 Artikel, davon 3 in der Kategorie „Zubehör“. preis_log ist leer. Wie viele Zeilen stehen nach dem UPDATE in preis_log?",
+        "CREATE TRIGGER trg_preis_log\nAFTER UPDATE OF preis ON artikel\nFOR EACH ROW\nEXECUTE FUNCTION preis_protokollieren();\n-- preis_protokollieren() schreibt pro Aufruf\n-- genau eine Zeile (id, alter Preis, neuer Preis)\n-- in die Tabelle preis_log\n\nUPDATE artikel SET preis = preis * 1.05\nWHERE kategorie = 'Zubehör';",
+        ["3"],
+        "FOR EACH ROW: Der Trigger läuft einmal pro geänderter Zeile, also dreimal. Ein Anweisungstrigger (FOR EACH STATEMENT) liefe nur einmal.",
+        { codeLang: "sql" },
+      ),
+      q.multi(
+        "Welche Aussagen zu Stored Procedures treffen zu?",
+        [
+          "Sie werden im DBMS gespeichert und ausgeführt – mehrere Anweisungen brauchen nur einen Aufruf über das Netzwerk.",
+          "Sie schützen immer vor SQL-Injection, auch wenn sie intern SQL-Text aus ihren Parametern zusammensetzen.",
+          "Ihre Sprachen sind herstellerspezifisch (z. B. PL/pgSQL, T-SQL, PL/SQL) – ein Wechsel des DBMS wird dadurch aufwendiger.",
+          "Man verwendet sie wie eine Spalte direkt in der SELECT-Liste, z. B. SELECT bestand_buchen(5, 2) FROM artikel.",
+        ],
+        [0, 2],
+        "Dynamisches SQL per String-Verkettung bleibt auch in einer Prozedur angreifbar. In Ausdrücken verwendet man Funktionen; Prozeduren werden mit CALL bzw. EXEC aufgerufen.",
+      ),
+      q.single(
+        "Die Datenbanklogik steckt in einer Stored Procedure. Eine Anwendung ruft sie wie gezeigt auf. Ist das sicher gegen SQL-Injection?",
+        [
+          "Ja – Stored Procedures schützen grundsätzlich vor SQL-Injection.",
+          "Nein – der Aufruf entsteht per String-Verkettung; die Eingabe muss als gebundener Parameter übergeben werden (z. B. {call kunde_suchen(?)} mit setString).",
+          "Ja, sofern die Eingabe vorher in Großbuchstaben umgewandelt wird.",
+          "Nein – Stored Procedures dürfen grundsätzlich keine Parameter haben.",
+        ],
+        1,
+        "Die Eingabe wird Teil des SQL-Texts und kann dessen Struktur verändern (z. B. Anführungszeichen schließen und eigenen Code anhängen). Erst die Parameterbindung trennt Wert und SQL-Text.",
+        { code: 'String sql = "CALL kunde_suchen(\'" + eingabe + "\')";\nstatement.execute(sql);', codeLang: "java", difficulty: 3 },
+      ),
+      q.single(
+        "Ein soziales Netzwerk soll schnell beantworten, welche „Freunde von Freunden“ eine Nutzerin hat. Welcher NoSQL-Typ passt am besten?",
+        ["Key-Value-Store", "Dokumentenorientierte Datenbank", "Wide-Column-Datenbank (oft „spaltenorientiert“ genannt)", "Graphdatenbank"],
+        3,
+        "Graphdatenbanken speichern Beziehungen als Kanten und durchlaufen sie direkt – ohne viele JOINs über Zwischentabellen.",
+        { placement: true },
+      ),
+      q.single(
+        "Was besagt das CAP-Theorem für verteilte Datensysteme?",
+        [
+          "Mit genügend Servern lassen sich Konsistenz, Verfügbarkeit und Partitionstoleranz jederzeit gleichzeitig garantieren.",
+          "Tritt eine Netzwerkpartition auf, muss das System zwischen Konsistenz und Verfügbarkeit wählen.",
+          "Relationale Datenbanken erfüllen C, A und P, NoSQL-Datenbanken nur P.",
+          "CAP steht für Commit, Abort, Persist und beschreibt den Ablauf einer Transaktion.",
+        ],
+        1,
+        "Partitionen lassen sich in verteilten Systemen nicht ausschließen. Während einer Partition liefert ein System entweder aktuelle Daten oder einen Fehler (CP) oder antwortet immer fehlerfrei, notfalls mit veraltetem Stand (AP).",
+        { difficulty: 3 },
+      ),
+      q.single(
+        "Welche Beschreibung passt zu OLAP?",
+        [
+          "Viele kurze Schreibtransaktionen im Tagesgeschäft, z. B. an der Kasse",
+          "Komplexe, überwiegend lesende Auswertungen großer historischer Datenmengen, z. B. Umsatz je Region und Quartal",
+          "Ein Sperrverfahren, das Lost Updates verhindert",
+          "Ein Datenformat für den Austausch zwischen Webservices",
+        ],
+        1,
+        "OLAP dient der Analyse (oft in einem Data Warehouse), OLTP dem operativen Tagesgeschäft.",
+      ),
+      q.sql(
+        "Lege eine Sicht (View) umsatz_kategorie an, die für gelieferte Bestellungen den Umsatz (Menge × Preis) je Artikelkategorie liefert. Spalten: kategorie, umsatz.",
+        "shop",
+        "CREATE VIEW umsatz_kategorie AS SELECT a.kategorie, SUM(p.menge * a.preis) AS umsatz FROM position p JOIN artikel a ON a.id = p.artikel_id JOIN bestellung b ON b.id = p.bestellung_id WHERE b.status = 'geliefert' GROUP BY a.kategorie",
+        "CREATE VIEW … AS SELECT: position mit artikel und bestellung verbinden, auf status = 'geliefert' filtern und nach Kategorie gruppieren. Die View speichert nur die Abfrage, nicht die Daten – sie liefert bei jedem Zugriff den aktuellen Stand. Solche verdichtenden Auswertungen sind typisch für OLAP.",
+        { check: "SELECT kategorie, umsatz FROM umsatz_kategorie ORDER BY kategorie", difficulty: 4 },
+      ),
+      q.open(
+        "Ein Onlineshop will jede Preisänderung an Artikeln nachvollziehen können – egal, ob sie über die Weboberfläche, ein Importskript oder direkt in der Datenbank erfolgt. Beschreibe eine Lösung mit einem Trigger und nenne je zwei Vor- und Nachteile gegenüber einer Lösung im Anwendungscode.",
+        "Lösung: AFTER-UPDATE-Trigger auf Zeilenebene (FOR EACH ROW) auf der Tabelle artikel. Bei geändertem Preis schreibt er Artikel-ID, alten Preis (OLD.preis), neuen Preis (NEW.preis) und Zeitstempel (ggf. Benutzer) in eine Tabelle preis_log.\nVorteile: greift bei jeder Änderung, egal welche Anwendung oder welches Skript sie auslöst; läuft in derselben Transaktion wie die Änderung (Protokoll und Daten bleiben konsistent); keine doppelte Logik in mehreren Anwendungen.\nNachteile: „versteckte“ Logik, die im Anwendungscode nicht sichtbar ist; zusätzliche Last bei Massenänderungen; schwerer zu testen, zu debuggen und zu versionieren; herstellerspezifische Syntax.",
+        "Entscheidend ist, dass der Trigger auch Änderungen außerhalb der Anwendung erfasst – genau das kann Anwendungscode nicht leisten.",
+        { difficulty: 3 },
+      ),
+      q.open(
+        "Eine Handelskette (fiktiv) hat ein Kassensystem, einen Webshop und erhält Lieferantendaten als CSV-Dateien. Die Geschäftsführung möchte Umsätze je Region, Artikelgruppe und Monat über mehrere Jahre auswerten. Beschreibe, wie ein Data Warehouse mit ETL-Prozess dafür aufgebaut wird und warum man die Auswertungen nicht direkt auf den operativen Datenbanken ausführt.",
+        "Data Warehouse: eigene, themenorientierte Analysedatenbank, die Daten aus allen Quellen vereinheitlicht und mit Historie speichert.\nETL, regelmäßig (z. B. nachts): Extract – Daten aus Kassensystem, Webshop-Datenbank und CSV-Dateien lesen. Transform – bereinigen (Dubletten, fehlende Werte), vereinheitlichen (Datumsformate, Artikelnummern, Einheiten), verknüpfen und verdichten. Load – in das DWH laden.\nModell: Sternschema mit Faktentabelle Verkauf (Menge, Umsatz) und Dimensionen Zeit, Filiale/Region, Artikel.\nBegründung: Analysen (OLAP) sind lange, lesende Abfragen und würden die OLTP-Systeme im Tagesgeschäft ausbremsen; die operativen Systeme halten oft keine lange Historie; die Daten liegen in verschiedenen Systemen und Formaten und müssen erst vereinheitlicht werden.",
+        "",
+        { difficulty: 4 },
+      ),
+    ],
+    cards: [
+      card("Isolationsprobleme", "Lost Update, Dirty Read, Non-Repeatable Read, Phantom Read", true),
+      card("Lost Update vermeiden", "In der DB rechnen (SET x = x - 1), SELECT … FOR UPDATE (pessimistisch) oder Versionsspalte prüfen (optimistisch)."),
+      card("Isolationsstufen (aufsteigend)", "READ UNCOMMITTED – READ COMMITTED – REPEATABLE READ – SERIALIZABLE. Höher = mehr Schutz, weniger Parallelität."),
+      card("Trigger", "Läuft automatisch bei INSERT/UPDATE/DELETE. BEFORE: prüfen/ändern. AFTER: z. B. protokollieren. Zeilentrigger sehen OLD und NEW.", true),
+      card("Stored Procedure vs. Function", "Procedure: CALL/EXEC, führt Aktionen aus. Function: liefert einen Wert, nutzbar in SELECT/WHERE.", true),
+      card("NoSQL-Typen", "Key-Value (Redis), Dokument (MongoDB), Wide-Column (Cassandra), Graph (Neo4j)", true),
+      card("CAP-Theorem", "Bei einer Netzwerkpartition muss ein verteiltes System zwischen Konsistenz (C) und Verfügbarkeit (A) wählen.", true),
+      card("BASE", "Basically Available, Soft State, Eventually Consistent – Verfügbarkeit vor sofortiger Konsistenz."),
+      card("OLTP vs. OLAP", "OLTP: viele kurze Transaktionen im Tagesgeschäft. OLAP: komplexe lesende Analysen über historische Daten.", true),
+      card("ETL", "Extract (aus Quellen lesen), Transform (bereinigen, vereinheitlichen), Load (ins Data Warehouse laden)."),
+      card("Big Data – die V", "Volume, Velocity, Variety; oft ergänzt um Veracity und Value."),
+    ],
+  },
+  {
     id: "algo-fehler-tests",
     part: "AP2_ALGO",
     lf: "LF11a",
