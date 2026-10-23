@@ -86,3 +86,7 @@ Neue Themen/Fragen in `src/content/topics/*.ts` ergänzen (Helfer `q.single`, `q
 ## Quellen
 
 Rechtsgrundlage: [FIAusbV](https://www.gesetze-im-internet.de/fiausbv/) · [KMK-Rahmenlehrplan](https://www.kmk.org/fileadmin/Dateien/pdf/Bildung/BeruflicheBildung/rlp/Fachinformatiker_19-12-13_EL.pdf) · [SIHK Hagen – IT-Berufe](https://www.ihk.de/hagen/bildung/abschlusspruefungen/it-berufe-index-812540?index=0). Vollständige Liste in der App unter „Quellen & Regeln“.
+
+## Lizenz
+
+[MIT](LICENSE) – gilt für Code und Lerninhalte. Die verlinkten externen Quellen (Gesetze, IHK-, KMK- und BIBB-Dokumente usw.) unterliegen den Bedingungen ihrer jeweiligen Herausgeber.
