@@ -14,7 +14,7 @@ Lernapp für die IHK-Abschlussprüfung **Fachinformatiker/in Anwendungsentwicklu
 - **Rettungsmodus** für alle, die kaum etwas gelernt haben: nur Pflichtthemen mit dem meisten Punktenutzen, Ziel „sicher bestehen“
 - **Machbarkeitsampel**: reicht die Zeit? Was fällt bei Zeitmangel weg?
 - **Automatische Umplanung** verpasster Einheiten
-- **Lektionen, Karteikarten, Übungsaufgaben** zu 46 Themen (≈ 290 Aufgaben, ≈ 220 Karten) – alles eigene Inhalte
+- **Lektionen, Karteikarten, Übungsaufgaben** zu 51 Themen (≈ 360 Aufgaben, ≈ 280 Karten) – alles eigene Inhalte
 - Aufgabentypen: Single/Multiple Choice, Kurzantwort, Rechnung (Toleranz, Bit/Byte-Hinweise), Code lesen, **SQL mit echter Ausführung** in einer Sandbox, Freitext mit Selbstbewertung
 - **Spaced Repetition** (Leitner, 1/3/7/14/30 Tage)
 - **Prüfungssimulation** mit Timer und IHK-100-Punkte-Schlüssel
